@@ -1,0 +1,21 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "A backend for NourishShare Web Application",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev":"nodemon src/index.js"
+  },
+  "keywords": [
+    "backend",
+    "nourishShare"
+  ],
+  "author": "Ghan Shyam Shrestha, Susmita Shrestha, Rupesh Thapa",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1",
+    "mongoose": "^9.7.1",
+    "nodemon": "^3.1.14"
+  }
+}
