@@ -17,6 +17,18 @@ const donationSchema = new mongoose.Schema({
         type:String,
         enum:["Available","Upcoming","Claimed"],
         required:true
+    },
+    donor:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"User"
+    },
+    food:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref:"Food"
+    },
+    claimedBy:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"User"
     }
 },{timestamps:true});
 

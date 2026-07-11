@@ -1,18 +1,31 @@
 import mongoose from "mongoose";
 
+const foodQuantitySchema = new mongoose.Schema({
+    number:{
+        type:Number,
+        required:true,
+        min:1
+    },
+    units:{
+        type: String,
+        enum:["KG","g","L","ml","Pieces","Packets","Boxes","Bottles","Cans"],
+        required:true
+    }
+});
+
 const foodSchema = new mongoose.Schema({
     name:{
         type:String,
         required:true,
         trim:true,
-        index:true
     },
     foodImage:{ // we will use cloudinary to upload the image and get the URL
         type:String,
-        requied:true
+        required:true
     },
-    quantity:{
-        type:Number,
+    quantity:foodQuantitySchema,
+    expiryDate:{
+        type:Date,
         required:true
     },
     status:{
@@ -26,11 +39,19 @@ const foodSchema = new mongoose.Schema({
     },
     storageLocation:{
         type:String,
+        enum:["Refrigerator","Pantry","Freezer"],
+        default:"Refrigerator",
         required:true
     },
     category:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"Category"
+        ref:"Category",
+        required:true
+    },
+    owner:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"User",
+        required:true
     }
 },{timestamps:true});
 
