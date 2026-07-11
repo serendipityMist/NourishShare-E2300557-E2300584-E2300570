@@ -7,7 +7,7 @@ const foodSchema = new mongoose.Schema({
         trim:true,
         index:true
     },
-    foodImage:{
+    foodImage:{ // we will use cloudinary to upload the image and get the URL
         type:String,
         requied:true
     },
