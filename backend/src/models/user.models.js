@@ -26,6 +26,10 @@ const userSchema = new mongoose.Schema({
         required:true,
         trim:true
     },
+    avatar:{
+        type:String,
+        required:true
+    },
     age:{
         type:Number,
         required:true

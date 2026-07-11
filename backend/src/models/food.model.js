@@ -6,5 +6,32 @@ const foodSchema = new mongoose.Schema({
         required:true,
         trim:true,
         index:true
+    },
+    foodImage:{
+        type:String,
+        requied:true
+    },
+    quantity:{
+        type:Number,
+        required:true
+    },
+    status:{
+        type:String,
+        enum:["Available","Reserved","Donated","Used"],
+        required:true
+    },
+    description:{
+        type:String,
+        required:true
+    },
+    storageLocation:{
+        type:String,
+        required:true
+    },
+    category:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"Category"
     }
-},{timestamps:true})
+},{timestamps:true});
+
+export const Food = mongoose.model("Food",foodSchema);
