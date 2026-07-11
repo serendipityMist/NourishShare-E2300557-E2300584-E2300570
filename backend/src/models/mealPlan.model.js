@@ -5,24 +5,39 @@ const mealPlanSchema = new mongoose.Schema({
         type: Date,
         required:true
     },
+    day:{
+        type:String,
+        enum:[
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+        ],
+        required:true
+    },
     mealType:{
         type: String,
         enum:["Breakfast","Lunch","Dinner"],
         required:true
     },
-    day:{
+    mealName:{
         type:String,
-        required:true
+        trim:true,
+        reuired:true
     },
     user:{
         type: mongoose.Schema.Types.ObjectId,
         ref:"User",
         required:true
     },
-    food:{
+    food:[{
         type: mongooose.Schema.Types.ObjectId,
-        ref:"Food"
-    }
+        ref:"Food",
+        required:true
+    }]
 
 },{timestamps:true});
 
