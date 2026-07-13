@@ -73,4 +73,10 @@ userSchema.pre("save", async function (next){
     next();
 })
 
+//custom hook to check whether the password is same or not after hashing
+userSchema.methods.isPasswordCorrect = async function(password){
+    return await bcrypt.compare(password,this.password);
+}
+
+
 export const User = mongoose.model("User",userSchema);
