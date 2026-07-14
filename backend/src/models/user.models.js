@@ -59,6 +59,9 @@ const userSchema = new mongoose.Schema({
     twoFAEnabled:{
         type: Boolean,
         required: true
+    },
+    refreshToken:{
+        type:String
     }
 },{timestamps:true});
 
