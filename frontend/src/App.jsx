@@ -1,3 +1,7 @@
+import OurMissionPage from "./Pages/Ourmissionpage"
+
+function App() {
+
 import { Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './routes/ProtectedRoute.jsx';
 
@@ -29,6 +33,10 @@ import DonationDetails from './pages/donations/DonationDetails.jsx';
 
 export default function App() {
   return (
+    <>
+    <OurMissionPage/>
+    </>
+  )
     <Routes>
       {/* Public landing page */}
       <Route path="/" element={<Home />} />
