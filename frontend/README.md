@@ -1,16 +1,55 @@
-# React + Vite
+# SavePlate — UC1–UC3 Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React + Tailwind CSS implementation of the SavePlate case study, covering:
 
-Currently, two official plugins are available:
+- **UC1 — Register Users & Privacy Settings**: Register, Verify Email, 2FA setup, Login, 2FA verify, Forgot/Reset Password, and a full Settings page (profile, privacy/visibility, security) that was missing from the original mockups but required by the use case ("settings can be updated anytime from the account dashboard").
+- **UC2 — Manage Food Inventory**: Inventory list with filters/sort, Add/Edit item (shared modal), Item Details, Delete confirmation, Mark as Used, Convert to Donation.
+- **UC3 — Browse Food Items**: Browse Donations grid with category/search filters, a My Inventory tab (Inventory vs Donations toggle per the use case spec), Donation Details, Claim flow with confirmation, Create Listing.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Getting started
 
-## React Compiler
+```bash
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Then open the printed local URL (typically http://localhost:5173).
 
-## Expanding the ESLint configuration
+To build for production:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm run build
+npm run preview
+```
+
+## Project structure
+
+```
+src/
+  components/
+    layout/       Sidebar, TopBar, AppLayout, AuthLayout — the shared navbar/shell used on every screen
+    ui/            Generic building blocks: Button, Input, Select, Modal, Badge, EmptyState, ToastStack
+    auth/          OtpInput, PasswordStrengthMeter
+    inventory/     AddEditItemModal, ConfirmDeleteModal, InventoryRow
+    donations/     DonationCard, CreateDonationModal
+  pages/
+    auth/          Register, VerifyEmail, SecureAccount, Login, VerifyIdentity, ForgotPassword, ResetPassword
+    inventory/     InventoryList, ItemDetails
+    donations/     BrowseDonations, DonationDetails
+    settings/      Settings (profile / privacy / security tabs)
+    Welcome.jsx, Dashboard.jsx, Notifications.jsx, MealPlanner.jsx (placeholder, UC6 not in scope)
+  context/         AuthContext, InventoryContext, DonationContext, NotificationContext (React Context + useState, no backend)
+  hooks/           useAuth, useInventory, useDonations, useNotifications, useFilters
+  data/            mockData.js — seed data so the app is fully demoable without an API
+  utils/           dateUtils.js (expiry calculations), validators.js (form validation)
+  routes/          ProtectedRoute.jsx
+  App.jsx          Route table
+  main.jsx         Entry point, wraps the app in all providers
+```
+
+## Notes
+
+- All authenticated screens share the same `Sidebar` + `TopBar` via `AppLayout`, so navigation is identical everywhere.
+- State is in-memory only (React Context) — refreshing the page resets data. Swap the context implementations for real API calls when a backend is ready.
+- Tailwind config carries over the exact design tokens (colors, spacing, type scale) from the original Stitch mockups so visual style stays consistent.
+- Screens added beyond the original Stitch exports to satisfy the use case spec: **Settings/Privacy page**, **Mark as Used action**, **Inventory vs Donations browse toggle**, and **empty states** for both Inventory and Browse.
