@@ -59,13 +59,59 @@ const userSchema = new mongoose.Schema({
     twoFAEnabled:{
         type: Boolean,
         required: true
+    },
+    refreshToken:{
+        type:String
     }
 },{timestamps:true});
 
 
 //need to check this part if it is working or i am missing something
-userSchema.pre("save",function (){
-    bcrypt.hash(this.password,10);
+//fixed it
+userSchema.pre("save", async function (next){
+
+    if(!this.isModified("password")) return next();
+
+    this.password=bcrypt.hash(this.password,10);
+    next();
 })
+
+//custom hook to check whether the password is same or not after hashing
+userSchema.methods.isPasswordCorrect = async function(password){
+    return await bcrypt.compare(password,this.password);
+}
+
+userSchema.methods.generateAccessToken = function(){
+    return jwt.sign(
+        {
+            _id:this._id,
+            name: this.name,
+            email: this.email,
+            age: this.age,
+            phone: this.phone,
+            occupation: this.occupation,
+            twoFAEnabled: this.twoFAEnabled,
+            householdSize: this.householdSize,
+            malaysianResident: this.malaysianResident
+        },
+        process.env.ACCESS_TOKEN_SECRET,
+        {
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
+        }
+
+    )
+}
+
+userSchema.methods.generateRefreshToken = function(){
+    return jwt.sign(
+        {
+            _id:this._id
+        },
+        process.env.REFRESH_TOKEN_SECRECT,
+        {
+            expiresIn:process.env.REFRESH_TOKEN_EXPIRY
+        }
+    )
+}
 
 export const User = mongoose.model("User",userSchema);
