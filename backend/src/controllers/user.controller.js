@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/ApiReponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js  ";
 import { uploadFileInCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
+import { transporter } from "../utils/nodeMailer.js";
 
 const registerUser = asyncHandler(async (req, res) => {
     const { name, email, password, address, age,
@@ -159,55 +160,115 @@ const logoutUser = asyncHandler(async (req, res) => {
             new: true
         })
 
-        const options={
-            httpOnly:true,
-            secure:true
-        }
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
 
-        res.status(200)
-            .cookie("accessToken",options)
-            .cookie("refreshToken",options)
-            .json(new ApiResponse(200,{},"User logged out successfully"));
+    res.status(200)
+        .cookie("accessToken", options)
+        .cookie("refreshToken", options)
+        .json(new ApiResponse(200, {}, "User logged out successfully"));
 })
 
-const refreshAccessToken = asyncHandler(async(req,res)=>{
+const refreshAccessToken = asyncHandler(async (req, res) => {
     const incomingToken = req.cookies?.refreshToken || req.body?.refreshToken;
 
-    if(!incomingToken){
-        throw new ApiError(401,"Invalid Refresh Token");
+    if (!incomingToken) {
+        throw new ApiError(401, "Invalid Refresh Token");
     }
 
     try {
-        const decodedToken = await jwt.verify(incomingToken,process.env.REFRESH_TOKEN_SECRECT);
-    
+        const decodedToken = await jwt.verify(incomingToken, process.env.REFRESH_TOKEN_SECRECT);
+
         const user = await User.findById(decodedToken._id);
-    
-        if(!user){
-            throw new ApiError(401,"Invalid Refresh Token");
+
+        if (!user) {
+            throw new ApiError(401, "Invalid Refresh Token");
         }
-    
-        if(incomingToken!= user.refreshToken){
-            throw new ApiError(401,"Refresh Token is expired or used");
+
+        if (incomingToken != user.refreshToken) {
+            throw new ApiError(401, "Refresh Token is expired or used");
         }
-    
-        const options={
-            httpOnly:true,
-            secure:true
+
+        const options = {
+            httpOnly: true,
+            secure: true
         }
-        const {accessToken,freshRefreshToken} = await generateAccessAndRefreshToken(user._id);
-    
+        const { accessToken, freshRefreshToken } = await generateAccessAndRefreshToken(user._id);
+
         return res.status(200)
-                .cookie("accessToken",accessToken,options)
-                .cookie("refreshToken",freshRefreshToken,options)
-                .json(new ApiResponse(200,{
-                    accessToken, freshRefreshToken
-                },
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", freshRefreshToken, options)
+            .json(new ApiResponse(200, {
+                accessToken, freshRefreshToken
+            },
                 "Access Token Refreshed")
             )
     } catch (error) {
-        throw new ApiError(400,error?.message || "Invalid Refresh Token");
+        throw new ApiError(400, error?.message || "Invalid Refresh Token");
     }
 
 })
 
-export { registerUser, loginUser,logoutUser, refreshAccessToken };
+//OTP Generator
+const generateOTP = (req, res) => {
+    let otp = "";
+
+    for (let i = 0; i < 5; i++) {
+        let num = Math.floor(Math.random() * 10);
+        console.log(num);
+        otp += num;
+    }
+    console.log("OTP :", otp);
+    return otp;
+}
+
+//forgot Password
+const resetPassword = asyncHandler(async (req, res) => {
+    const { email, phone } = req.body;
+    if(!(email || phone)){
+        throw new ApiError(404,"User not found");
+    }
+
+    const userExists = await User.findOne({
+        $or: [{ email }, { phone }]
+    })
+    if (!userExists) {
+        throw new ApiError(404, "User doesn't exists.")
+    }
+    console.log("User: ", userExists);
+    
+    console.log("Email: ", userExists.email);
+    try {
+        let otp = generateOTP();
+        const info = await transporter.sendMail({
+            from: '"NourishShare Team" <nourish.sharee@gmail.com>',
+            to: `${userExists.email}`,
+            subject: "Change Your Password",
+            text: `
+            Hello ${userExists.name},
+            Please find your OTP for resetting the password below.
+            ${otp}
+            Regards,
+            NourishShare Team
+            `,
+            html: `
+                <p>Hello ${userExists.name},</p>
+                <p>Please find your OTP for resetting your password below:</p>
+                <h1>${otp}</h1>
+                <p>Regards,<br>NourishShare Team</p>
+                `
+        })
+        console.log("Message sent: %s", info.messageId);
+        
+    } catch (error) {
+        throw new ApiError(500, error?.message || "Error while sending email")
+    }
+
+    return res.status(200).json(new ApiResponse(200,{ },"OTP Send Successfully"));
+
+
+})
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken, resetPassword };
