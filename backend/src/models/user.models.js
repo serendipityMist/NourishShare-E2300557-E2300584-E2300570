@@ -68,11 +68,10 @@ const userSchema = new mongoose.Schema({
 
 //need to check this part if it is working or i am missing something
 //fixed it
-userSchema.pre("save", async function (){
+userSchema.pre("save", async function (next){
+    if(!this.isModified("password")) return;
 
-    if(!this.isModified("password")) return ;
-
-    this.password=bcrypt.hash(this.password,10);
+    this.password = await bcrypt.hash(this.password,10);
 })
 
 //custom hook to check whether the password is same or not after hashing

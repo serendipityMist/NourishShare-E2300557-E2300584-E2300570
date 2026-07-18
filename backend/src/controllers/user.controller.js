@@ -93,4 +93,58 @@ const registerUser = asyncHandler(async(req,res)=>{
 
 })
 
-export {registerUser};
+const generateAccessAndRefreshToken = async(userId)=>{
+    try {
+        const user = await User.findById(userId);
+        const accessToken = await user.generateAccessToken();
+        const refreshToken = await user.generateRefreshToken();
+
+        user.refreshToken = refreshToken;
+        await user.save({validateBeforeSave: false});
+        return {accessToken,refreshToken};
+    } catch (error) {
+        throw new ApiError(500,error?.message || "Something went wrong");
+    }
+}
+
+const loginUser = asyncHandler(async(req,res)=>{
+    const {phone,email,password}=req.body;
+
+    if(!(email || password)){
+        throw new ApiError(400,"Enter email or password");
+    }
+
+    const user = await User.findOne({
+        $or:[{phone},{email}]
+    })
+    if(!user){
+        throw new ApiError(404,"User is not registered");
+    }
+
+    const isPassValid = await user.isPasswordCorrect(password);
+    if(!isPassValid){
+        throw new ApiError(400,"Password doesn't match");
+    }
+    //generating access and refresh token
+    const {accessToken,refreshToken} = await generateAccessAndRefreshToken(user._id);
+
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
+    //sending cookies
+    const options={
+        httpOnly:true,
+        secure:true
+    }
+
+    return res.status(200)
+            .cookie("accessToken",accessToken,options)
+            .cookie("refreshToken",refreshToken,options)
+            .json(new ApiResponse(200,
+                {
+                    loggedInUser,accessToken,refreshToken
+                },
+                "User logged in successfully"
+            ))
+
+})
+export {registerUser,loginUser};
