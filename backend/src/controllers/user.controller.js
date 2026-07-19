@@ -129,7 +129,7 @@ const loginUser = asyncHandler(async (req, res) => {
     //generating access and refresh token
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
-    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken -otp -otpExpiry -isOtpValid");
 
     //sending cookies
     const options = {
@@ -225,22 +225,23 @@ const generateOTP = (req, res) => {
 }
 
 //forgot Password
-const resetPassword = asyncHandler(async (req, res) => {
-    const { email, phone } = req.body;
-    if(!(email || phone)){
-        throw new ApiError(404,"User not found");
-    }
-
-    const userExists = await User.findOne({
-        $or: [{ email }, { phone }]
-    })
-    if (!userExists) {
-        throw new ApiError(404, "User doesn't exists.")
-    }
-    console.log("User: ", userExists);
-    
-    console.log("Email: ", userExists.email);
+const forgotPassword = asyncHandler(async (req, res) => {
     try {
+        const { email, phone } = req.body;
+        if (!(email || phone)) {
+            throw new ApiError(404, "User not found");
+        }
+
+        const userExists = await User.findOne({
+            $or: [{ email }, { phone }]
+        })
+        if (!userExists) {
+            throw new ApiError(404, "User doesn't exists.")
+        }
+        console.log("User: ", userExists);
+
+        console.log("Email: ", userExists.email);
+
         let otp = generateOTP();
         const info = await transporter.sendMail({
             from: '"NourishShare Team" <nourish.sharee@gmail.com>',
@@ -261,14 +262,44 @@ const resetPassword = asyncHandler(async (req, res) => {
                 `
         })
         console.log("Message sent: %s", info.messageId);
-        
+
+        userExists.otp = otp;
+        userExists.otpExpiry = Date.now()+2*60*1000;
+        await userExists.save();
+
+        return res.status(200).json(new ApiResponse(200, {userExists}, "OTP Send Successfully"));
+
     } catch (error) {
         throw new ApiError(500, error?.message || "Error while sending email")
     }
 
-    return res.status(200).json(new ApiResponse(200,{ },"OTP Send Successfully"));
-
-
 })
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken, resetPassword };
+
+const verifyOTP = asyncHandler(async(req,res)=>{
+    try {
+        const {email,phone,otp} = req.body;
+        if(!(email || phone)){
+            throw new ApiError(400,"Please enter email or phone number");
+        }
+
+        const user = await User.findOne({
+            $or:[{email},{phone}]
+        })
+
+        if(otp!=user.otp){
+            throw new ApiError(404,"OTP is incorrect or OTP doesn't match");
+        }
+
+        user.otp = "";
+        user.isOtpValid = true;
+
+        return res.status(200)
+                .json(new ApiResponse(200,{},"OTP is verified"));
+
+    } catch (error) {
+            throw new ApiError(500,error?.message || "OTP verfification failed");
+    }
+})
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken, forgotPassword, verifyOTP };
