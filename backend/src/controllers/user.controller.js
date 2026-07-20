@@ -7,18 +7,13 @@ import jwt from "jsonwebtoken";
 import { transporter } from "../utils/nodeMailer.js";
 
 //OTP Generator
-const generateOTP = (req, res) => {
+const generateOTP = () => {
     let otp = "";
-
     for (let i = 0; i < 6; i++) {
-        let num = Math.floor(Math.random() * 10);
-        console.log(num);
-        otp += num;
+        otp += Math.floor(Math.random() * 10);
     }
-    console.log("OTP :", otp);
     return otp;
 }
-
 
 const registerUser = asyncHandler(async (req, res) => {
     const { name, email, password, address, age,
@@ -94,17 +89,52 @@ const registerUser = asyncHandler(async (req, res) => {
         householdSize,
         malaysianResident,
         twoFAEnabled,
+        // Use Case 1: user must verify OTP before account is active
+        isAccountActive: false,
         avatar: avatar.secure_url
     })
 
 
-    const createdUser = await User.findById(user._id).select("-password -refreshToken");
+    // Use Case 1: send registration verification OTP and keep account inactive
+    const otp = generateOTP();
+    user.registrationOtp = otp;
+    user.registrationOtpExpiry = new Date(Date.now() + 2 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
 
+    try {
+        const info = await transporter.sendMail({
+            from: '"SavePlate Team" <nourish.sharee@gmail.com>',
+            to: user.email,
+            subject: "Verify your SavePlate account",
+            text: `
+                Hello ${user.name},
+                Welcome to SavePlate.
+                Your verification code is:
+                ${otp}
+                This code is valid for 2 minutes.
+                `,
+                html: `
+                <p>Hello ${user.name}</p>
+                <p>Your OTP is</p>
+                <h1>${otp}</h1>
+`
+        });
+
+        console.log("Mail sent:", info);
+
+    } catch (err) {
+        console.log("MAIL ERROR");
+        console.log(err);
+    }
+
+    const createdUser = await User.findById(user._id).select("-password -refreshToken");
     if (!createdUser) {
         throw new ApiError(500, "Something went wrong");
     }
 
-    res.status(200).json(new ApiResponse(200, createdUser, "User registered Successfully"));
+    res.status(200).json(
+        new ApiResponse(200, createdUser, "Account registered. Please verify your email/OTP to activate.")
+    );
 
 })
 
@@ -129,8 +159,8 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Enter email or phone");
     }
 
-    if(!password){
-        throw new ApiError(400,"Please enter your password");
+    if (!password) {
+        throw new ApiError(400, "Please enter your password");
     }
 
     const user = await User.findOne({
@@ -144,6 +174,10 @@ const loginUser = asyncHandler(async (req, res) => {
     if (!isPassValid) {
         throw new ApiError(400, "Password doesn't match");
     }
+    if (user.isAccountActive === false) {
+        throw new ApiError(403, "Account is not active. Please verify your email/OTP.");
+    }
+
     if (user.twoFAEnabled == false) {
         //generating access and refresh token
         const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
@@ -197,64 +231,64 @@ const loginUser = asyncHandler(async (req, res) => {
     user.otpExpiry = Date.now() + 2 * 60 * 1000;
     await user.save();
 
-    return res.status(200).json(new ApiResponse(200,{},"Login Verification OTP Sent Successfully"));
+    return res.status(200).json(new ApiResponse(200, {}, "Login Verification OTP Sent Successfully"));
 
 
 })
 
 
-const verifyLoginOTP = asyncHandler(async(req,res)=>{
-    
-    const {email,phone,otp} = req.body;
+const verifyLoginOTP = asyncHandler(async (req, res) => {
 
-    if(!(email || phone)){
-        throw new ApiError(400,"Please enter email or phone");
+    const { email, phone, otp } = req.body;
+
+    if (!(email || phone)) {
+        throw new ApiError(400, "Please enter email or phone");
     }
-   
-    if(!otp){
-        throw new ApiError(400,"OTP is required");
+
+    if (!otp) {
+        throw new ApiError(400, "OTP is required");
     }
 
     const user = await User.findOne({
-        $or:[{email},{phone}]
+        $or: [{ email }, { phone }]
     })
 
-    if(!user){
+    if (!user) {
         throw new ApiError(404, "User doesn't exists");
     }
-     if(!user.twoFAEnabled){
-        throw new ApiError(400,"Two FA is not enabled");
+    if (!user.twoFAEnabled) {
+        throw new ApiError(400, "Two FA is not enabled");
     }
 
-     if(Date.now()>user.otpExpiry){
-        throw new ApiError(401,"OTP is expired");
+    if (Date.now() > user.otpExpiry) {
+        throw new ApiError(401, "OTP is expired");
     }
 
-    if(otp !== user.otp){
-        throw new ApiError(401,"OTP is incorrect");
+    if (otp !== user.otp) {
+        throw new ApiError(401, "OTP is incorrect");
     }
 
-   
 
-    const {accessToken,refreshToken} = await generateAccessAndRefreshToken(user._id);
-    
+
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
+
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken -otp -otpExpiry -isOtpVerified");
-    
+
     const options = {
-        httpOnly:true,
-        secure:true
+        httpOnly: true,
+        secure: true
     }
 
     user.otp = undefined;
     user.isOtpVerified = true;
-    user.otpExpiry=undefined;
+    user.otpExpiry = undefined;
     await user.save();
 
     return res.status(200)
-                .cookie("accessToken",accessToken,options)
-                .cookie("refreshToken",refreshToken,options)
-                .json(new ApiResponse(200,{loggedInUser,accessToken,refreshToken},"User logged in successfully"));
-    
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(new ApiResponse(200, { loggedInUser, accessToken, refreshToken }, "User logged in successfully"));
+
 
 
 
@@ -423,6 +457,7 @@ const resetPassword = asyncHandler(async (req, res) => {
             throw new ApiError(400, "Please enter email or phone number");
         }
 
+
         const user = await User.findOne({
             $or: [{ email }, { phone }]
         })
@@ -448,4 +483,230 @@ const resetPassword = asyncHandler(async (req, res) => {
     }
 })
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken, forgotPassword, verifyOTP, resetPassword , verifyLoginOTP};
+const verifyRegistrationOtp = asyncHandler(async (req, res) => {
+    const { email, phone, otp, twoFAEnabled } = req.body;
+
+    if (!(email || phone)) {
+        throw new ApiError(400, "Please enter email or phone number");
+    }
+
+    if (!otp) {
+        throw new ApiError(400, "OTP is required");
+    }
+
+    const user = await User.findOne({
+        $or: [{ email }, { phone }]
+    });
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (!user.registrationOtp || !user.registrationOtpExpiry) {
+        throw new ApiError(400, "No registration OTP found. Please register again.");
+    }
+
+    if (Date.now() > user.registrationOtpExpiry.getTime()) {
+        throw new ApiError(401, "OTP is expired");
+    }
+
+    if (String(otp) !== String(user.registrationOtp)) {
+        throw new ApiError(401, "OTP is incorrect");
+    }
+
+    user.registrationOtp = undefined;
+    user.registrationOtpExpiry = undefined;
+
+    user.isAccountActive = true;
+
+    // Apply privacy/security after verification
+    if (twoFAEnabled != null) {
+        user.twoFAEnabled = !!twoFAEnabled;
+    } else {
+        // keep whatever user already selected during registration
+    }
+
+    await user.save({ validateBeforeSave: false });
+
+    const createdUser = await User.findById(user._id).select("-password -refreshToken");
+
+    res.status(200).json(
+        new ApiResponse(200, createdUser, "Account activated successfully")
+    );
+});
+
+//update profile
+const updateProfile = asyncHandler(async (req, res) => {
+
+    const {
+        name,
+        email,
+        address,
+        age,
+        phone,
+        gender,
+        occupation,
+        householdSize,
+        malaysianResident
+    } = req.body;
+
+    const user = await User.findById(req.user?._id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // Check duplicate email
+    if (email && email !== user.email) {
+
+        const existingEmail = await User.findOne({
+            email,
+            _id: { $ne: user._id }
+        });
+
+        if (existingEmail) {
+            throw new ApiError(409, "Email already exists");
+        }
+    }
+
+    // Check duplicate phone
+    if (phone && phone !== user.phone) {
+
+        const existingPhone = await User.findOne({
+            phone,
+            _id: { $ne: user._id }
+        });
+
+        if (existingPhone) {
+            throw new ApiError(409, "Phone number already exists");
+        }
+    }
+
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (address) user.address = address;
+    if (age) user.age = age;
+    if (phone) user.phone = phone;
+    if (gender) user.gender = gender;
+    if (occupation) user.occupation = occupation;
+    if (householdSize) user.householdSize = householdSize;
+
+    if (malaysianResident !== undefined) {
+        user.malaysianResident = malaysianResident;
+    }
+
+    await user.save();
+
+    const updatedUser = await User.findById(user._id)
+        .select("-password -refreshToken -otp -otpExpiry -registrationOtp -registrationOtpExpiry");
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            updatedUser,
+            "Profile updated successfully"
+        )
+    );
+
+});
+
+//uploadAvatar
+const updateAvatar = asyncHandler(async (req, res) => {
+
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
+
+    if (!avatarLocalPath) {
+        throw new ApiError(400, "Avatar image is required");
+    }
+
+    const avatar = await uploadFileInCloudinary(avatarLocalPath);
+
+    if (!avatar) {
+        throw new ApiError(500, "Avatar upload failed");
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                avatar: avatar.secure_url
+            }
+        },
+        {
+            new: true
+        }
+    ).select("-password -refreshToken -otp -otpExpiry -registrationOtp -registrationOtpExpiry");
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            user,
+            "Avatar updated successfully"
+        )
+    );
+
+});
+
+//changePassword
+const changePassword = asyncHandler(async (req, res) => {
+
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+        throw new ApiError(400, "Old password and new password are required");
+    }
+
+    const user = await User.findById(req.user?._id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+
+    if (!isPasswordCorrect) {
+        throw new ApiError(401, "Old password is incorrect");
+    }
+
+    user.password = newPassword;
+
+    await user.save();
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {},
+            "Password changed successfully"
+        )
+    );
+
+});
+
+//toggleTwoFactor
+const toggleTwoFactor = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    user.twoFAEnabled = !user.twoFAEnabled;
+
+    await user.save({ validateBeforeSave: false });
+
+    const updatedUser = await User.findById(user._id).select(
+        "-password -refreshToken -otp -otpExpiry -registrationOtp -registrationOtpExpiry"
+    );
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            updatedUser,
+            `Two Factor Authentication ${
+                updatedUser.twoFAEnabled ? "enabled" : "disabled"
+            } successfully`
+        )
+    );
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken, forgotPassword, verifyOTP, resetPassword, verifyLoginOTP, verifyRegistrationOtp, updateAvatar, updateProfile,changePassword, toggleTwoFactor };

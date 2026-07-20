@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema({
     gender:{
         type:String,
         required:true,
-        enumu:["Male","Female","Other"]
+        enum:["Male","Female","Other"]
     },
     occupation:{
         type:String,
@@ -56,13 +56,23 @@ const userSchema = new mongoose.Schema({
         required:true,
         default: true
     },
+    // Privacy/Security
     twoFAEnabled:{
         type: Boolean,
-        required: true
+        required: true,
+        default: false
     },
+    // Account becomes active only after registration/email verification
+    isAccountActive:{
+        type: Boolean,
+        default: false
+    },
+
     refreshToken:{
         type:String
     },
+
+    // Login OTP (2FA)
     otp:{
         type:String
     },
@@ -72,6 +82,14 @@ const userSchema = new mongoose.Schema({
     isOtpVerified:{
         type:Boolean,
         default:false
+    },
+
+    // Registration verification OTP (Use Case 1)
+    registrationOtp:{
+        type:String
+    },
+    registrationOtpExpiry:{
+        type:Date
     }
 },{timestamps:true});
 
