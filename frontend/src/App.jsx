@@ -8,11 +8,11 @@ import HowItWorks from './pages/HowItWorks.jsx';
 import Contact from './pages/Contact.jsx';
 import NotFound from './pages/NotFound.jsx';
 import Register from './pages/auth/Register.jsx';
-import VerifyEmail from './pages/auth/VerifyEmail.jsx';
-import SecureAccount from './pages/auth/SecureAccount.jsx';
 import Login from './pages/auth/Login.jsx';
 import VerifyIdentity from './pages/auth/VerifyIdentity.jsx';
+import VerifyRegistrationOtp from './pages/auth/VerifyRegistrationOtp.jsx';
 import ForgotPassword from './pages/auth/ForgotPassword.jsx';
+import VerifyResetOtp from './pages/auth/VerifyResetOtp.jsx';
 import ResetPassword from './pages/auth/ResetPassword.jsx';
 
 import Welcome from './pages/Welcome.jsx';
@@ -39,11 +39,11 @@ export default function App() {
 
       {/* Public / auth routes (UC1) */}
       <Route path="/register" element={<Register />} />
-      <Route path="/verify-email" element={<VerifyEmail />} />
-      <Route path="/secure-account" element={<SecureAccount />} />
       <Route path="/login" element={<Login />} />
       <Route path="/verify-identity" element={<VerifyIdentity />} />
+      <Route path="/verify-registration-otp" element={<VerifyRegistrationOtp />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/verify-reset-otp" element={<VerifyResetOtp />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Authenticated app routes */}
