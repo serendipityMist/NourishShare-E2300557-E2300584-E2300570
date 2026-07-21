@@ -4,22 +4,30 @@ import Input from '../../components/ui/Input.jsx';
 import Button from '../../components/ui/Button.jsx';
 import ToastStack from '../../components/ui/ToastStack.jsx';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
   const { showToast } = useNotifications();
+  const { forgotPassword } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!identifier) return;
+    setError('');
     setSubmitting(true);
-    setTimeout(() => {
+    try {
+      await forgotPassword(identifier);
+      showToast('Check your inbox for the verification code', 'success');
+      navigate('/verify-reset-otp', { state: { identifier } });
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Could not find an account with those details.');
+    } finally {
       setSubmitting(false);
-      showToast('Check your inbox or SMS for instructions', 'success');
-      navigate('/reset-password');
-    }, 1200);
+    }
   }
 
   return (
@@ -38,28 +46,24 @@ export default function ForgotPassword() {
               <h2 className="font-headline-md text-headline-md">Forgot Password?</h2>
             </div>
             <p className="font-body-md text-on-surface-variant leading-relaxed">
-              Enter your account details below and we&apos;ll send you a secure link to reset your kitchen access.
+              Enter your account details below and we&apos;ll send you a 6-digit code to reset your kitchen access.
             </p>
           </div>
           <form className="space-y-lg" onSubmit={handleSubmit}>
-            <Input
-              label="Phone or Email Address"
-              placeholder="e.g. kitchen@saveplate.my"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-            />
+            <Input label="Phone or Email Address" placeholder="e.g. kitchen@saveplate.my" value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)} />
+            {error && <p className="text-error text-label-sm">{error}</p>}
             <div className="bg-surface-container border-l-4 border-primary p-md flex gap-md items-start">
               <span className="material-symbols-outlined text-primary mt-xs">info</span>
               <div className="space-y-xs">
                 <p className="font-label-md text-label-md text-primary">How it works</p>
                 <p className="font-body-md text-on-surface-variant text-sm">
-                  We&apos;ll verify your account and send a 6-digit code to your registered contact method. Codes are
-                  valid for 15 minutes.
+                  We&apos;ll verify your account and send a 6-digit code to your registered email. Codes are valid for 2 minutes.
                 </p>
               </div>
             </div>
             <Button type="submit" className="w-full" disabled={submitting} icon="arrow_forward">
-              {submitting ? 'Sending...' : 'Send Reset Link'}
+              {submitting ? 'Sending...' : 'Send Reset Code'}
             </Button>
           </form>
           <div className="mt-xl pt-lg border-t border-outline-variant flex flex-col items-center gap-md">

@@ -7,7 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, user } = useAuth();
+  const { login } = useAuth();
   const [identity, setIdentity] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -15,7 +15,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!identity || !password) {
       setError('Please enter your email/phone and password.');
@@ -23,15 +23,18 @@ export default function Login() {
     }
     setError('');
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      if (user.twoFactorEnabled) {
-        navigate('/verify-identity');
+    try {
+      const { requiresOtp } = await login({ identity, password });
+      if (requiresOtp) {
+        navigate('/verify-identity', { state: { identity } });
       } else {
-        login();
         navigate('/dashboard');
       }
-    }, 700);
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -41,12 +44,8 @@ export default function Login() {
         <p className="font-body-md text-surface/70">Step back into your digital pantry.</p>
       </header>
       <form className="space-y-lg" onSubmit={handleSubmit}>
-        <Input
-          label="Email or Phone Number"
-          placeholder="pantry@saveplate.com"
-          value={identity}
-          onChange={(e) => setIdentity(e.target.value)}
-        />
+        <Input label="Email or Phone Number" placeholder="pantry@saveplate.com" value={identity}
+          onChange={(e) => setIdentity(e.target.value)} />
         <div className="space-y-xs">
           <div className="flex justify-between items-center">
             <label className="font-label-md text-label-md text-surface block">Password</label>
@@ -57,29 +56,19 @@ export default function Login() {
           <div className="relative">
             <input
               className="stamped-input py-sm font-body-md text-surface placeholder:text-surface/30 border-surface/25 bg-transparent w-full pr-xl"
-              placeholder="••••••••"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button
-              type="button"
+              placeholder="••••••••" type={showPassword ? 'text' : 'password'} value={password}
+              onChange={(e) => setPassword(e.target.value)} />
+            <button type="button"
               className="material-symbols-outlined absolute right-0 top-1/2 -translate-y-1/2 text-surface/50 text-[20px] hover:text-surface transition-colors"
-              onClick={() => setShowPassword((s) => !s)}
-            >
+              onClick={() => setShowPassword((s) => !s)}>
               {showPassword ? 'visibility_off' : 'visibility'}
             </button>
           </div>
         </div>
         {error && <p className="text-error text-label-sm">{error}</p>}
         <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="remember"
-            checked={remember}
-            onChange={(e) => setRemember(e.target.checked)}
-            className="w-5 h-5 rounded border-surface/30 text-primary bg-surface/10 cursor-pointer"
-          />
+          <input type="checkbox" id="remember" checked={remember} onChange={(e) => setRemember(e.target.checked)}
+            className="w-5 h-5 rounded border-surface/30 text-primary bg-surface/10 cursor-pointer" />
           <label htmlFor="remember" className="ml-sm font-label-md text-label-md text-surface/70 cursor-pointer">
             Keep me logged in
           </label>
