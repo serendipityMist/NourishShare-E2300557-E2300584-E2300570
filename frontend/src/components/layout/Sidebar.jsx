@@ -26,7 +26,7 @@ export default function Sidebar({ open = false, onClose }) {
       >
         <div className="mb-xl px-sm flex items-center justify-between">
           <div>
-            <h1 className="font-headline-md text-headline-md font-bold text-primary">SavePlate</h1>
+            <h1 className="font-headline-md text-headline-md font-bold text-primary">NourishShare</h1>
             <p className="font-label-sm text-on-surface-variant opacity-70">Smart Food Waste Reduction</p>
           </div>
           <button className="md:hidden p-xs" onClick={onClose} aria-label="Close menu">
