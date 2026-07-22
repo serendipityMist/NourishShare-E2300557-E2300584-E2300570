@@ -187,8 +187,8 @@ export default function About() {
               <Link to="/register" className="bg-primary text-on-primary px-xl py-md rounded-full font-headline-md hover:scale-105 transition-transform">
                 Create Your Account
               </Link>
-              <Link to="/contact" className="border border-primary text-primary px-xl py-md rounded-full font-headline-md hover:bg-primary/5 transition-colors">
-                Contact Us
+              <Link to="/contact" className="w-full sm:w-auto border border-black-300 text-orange-400 px-xl py-md rounded-full font-label-md text-lg hover:bg-orange-50 transition-colors text-center">
+                Contact 
               </Link>
             </div>
           </div>
