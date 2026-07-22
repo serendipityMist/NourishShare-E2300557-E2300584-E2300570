@@ -1,4 +1,4 @@
-# SavePlate — UC1–UC3 Frontend
+# NourishShare — UC1–UC3 Frontend
 
 A React + Tailwind CSS implementation of the SavePlate case study, covering:
 
