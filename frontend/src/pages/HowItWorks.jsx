@@ -159,7 +159,7 @@ export default function HowItWorks() {
               </Link>
               <Link
                 to={donatePath}
-                className="bg-white border border-outline-variant text-primary px-xl py-lg rounded-full font-headline-md transition-all hover:bg-surface-container-low text-center"
+                className="w-full sm:w-auto border border-orange-300 text-orange-400 px-xl py-md rounded-full font-label-md text-lg hover:bg-orange-50 transition-colors text-center"
               >
                 View Community Map
               </Link>
