@@ -11,7 +11,7 @@ router.route("/addFoodItem").post(verifyJWT,
     [
         {
             name: "foodImage",
-            max: 1
+            maxCount: 1
         }
     ],
 ),addFoodItem
@@ -20,7 +20,7 @@ router.route("/editFoodItem/:id").put(verifyJWT,upload.fields(
     [
         {
             name:"foodImage",
-            max:1
+            maxCount:1
         }
     ]
 ),editFoodItem
