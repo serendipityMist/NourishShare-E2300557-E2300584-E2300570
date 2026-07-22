@@ -29,7 +29,7 @@ export default function Avatar({
       src={imgSrc}
       alt={name}
       onError={handleError}
-      className={`${sizeClass} rounded-full object-cover object-center border-2 border-primary bg-gray-100 ${className}`}
+      className={`${sizeClass} aspect-square rounded-full object-cover object-center border-2 border-primary bg-gray-100 ${className}`}
     />
   );
 }

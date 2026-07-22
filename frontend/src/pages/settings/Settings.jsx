@@ -215,7 +215,7 @@ export default function Settings() {
                 <img
                   src={user?.avatar}
                   alt="Avatar"
-                  className="w-28 h-28 rounded-full object-cover border"
+                  className="w-28 h-28 aspect-square rounded-full object-cover border"
                 />
 
                 <div className="flex flex-col gap-sm">

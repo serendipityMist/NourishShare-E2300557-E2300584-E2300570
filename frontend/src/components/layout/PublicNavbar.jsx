@@ -66,9 +66,6 @@ export default function PublicNavbar() {
                 <span className="font-medium">
                   {user?.name?.split(" ")[0]}
                 </span>
-                <span className="material-symbols-outlined text-[18px]">
-                  {profileOpen ? 'expand_less' : 'expand_more'}
-                </span>
               </button>
               {profileOpen && (
                 <>
