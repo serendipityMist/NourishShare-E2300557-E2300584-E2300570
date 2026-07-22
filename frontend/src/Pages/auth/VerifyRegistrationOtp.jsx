@@ -8,12 +8,14 @@ import { useAuth } from '../../hooks/useAuth';
 export default function VerifyRegistrationOtp() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { verifyRegistrationOtp } = useAuth();
+  const { verifyRegistrationOtp, resendRegistrationOtp } = useAuth();
 
   const identity = location.state?.identity || location.state?.registeredIdentity || '';
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
   const [time, setTime] = useState(119);
 
   useEffect(() => {
@@ -44,6 +46,27 @@ export default function VerifyRegistrationOtp() {
     }
   }
 
+  async function handleResend() {
+    if (!identity) {
+      setError('Missing email identity. Please register again.');
+      return;
+    }
+
+    setResending(true);
+    setResendMessage('');
+    setError('');
+    try {
+      await resendRegistrationOtp(identity);
+      setResendMessage('A new verification code has been sent to your email.');
+      setTime(119);
+      setCode('');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Unable to resend verification code.');
+    } finally {
+      setResending(false);
+    }
+  }
+
   return (
     <main className="bg-surface text-on-surface font-body-md min-h-screen flex flex-col items-center justify-center p-md paper-texture">
       <div className="w-full max-w-md bg-surface-container-lowest border border-outline-variant p-lg md:p-xl rounded-none relative overflow-hidden flex flex-col gap-lg">
@@ -60,6 +83,7 @@ export default function VerifyRegistrationOtp() {
         <form className="flex flex-col gap-lg" onSubmit={handleSubmit}>
           <OtpInput value={code} onChange={setCode} />
           {error && <p className="text-error text-label-sm text-center">{error}</p>}
+          {resendMessage && <p className="text-primary text-label-sm text-center">{resendMessage}</p>}
 
           <div className="flex items-center justify-center gap-xs">
             <span className="material-symbols-outlined text-[18px] text-on-surface-variant">schedule</span>
@@ -76,13 +100,23 @@ export default function VerifyRegistrationOtp() {
           </Button>
         </form>
 
-        <div className="text-center">
-          <Link
-            to="/register"
-            className="font-label-md text-label-md text-on-surface-variant hover:text-primary"
+        <div className="text-center space-y-sm">
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={resending}
+            className="font-label-md text-label-md text-primary hover:underline disabled:opacity-50"
           >
-            Register again
-          </Link>
+            {resending ? 'Sending new code...' : 'Request a new code'}
+          </button>
+          <div>
+            <Link
+              to="/register"
+              className="font-label-md text-label-md text-on-surface-variant hover:text-primary"
+            >
+              Register again
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -90,4 +124,3 @@ export default function VerifyRegistrationOtp() {
     </main>
   );
 }
-

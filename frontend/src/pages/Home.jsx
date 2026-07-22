@@ -2,8 +2,9 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PublicLayout from '../components/layout/PublicLayout.jsx';
 import Button from '../components/ui/Button.jsx';
+import CommunityMarketplaceGrid from '../components/donations/CommunityMarketplaceGrid.jsx';
 import { useAuth } from '../hooks/useAuth';
-import { useDonations } from '../hooks/useDonations';
+import { usePublicDonations } from '../hooks/usePublicDonations';
 
 const STEPS = [
   { icon: 'inventory_2', color: 'bg-tertiary-fixed text-tertiary', title: '1. Add Food', desc: 'Quickly log items as they enter your kitchen pantry.' },
@@ -21,8 +22,7 @@ const STATS = [
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
-  const { donations } = useDonations();
-  const recentDonations = donations.filter((d) => d.status === 'available').slice(0, 3);
+  const { donations, loading } = usePublicDonations(3);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -189,38 +189,16 @@ export default function Home() {
               <h2 className="font-headline-lg text-primary mb-sm">Shared Recently in Your Area</h2>
               <p className="font-body-md text-on-surface-variant">Join the circle of care in Kuala Lumpur and beyond.</p>
             </div>
-            <Link to={isAuthenticated ? '/donations' : '/register'} className="text-primary font-label-md flex items-center gap-xs hover:underline">
+            <Link to={isAuthenticated ? '/donations' : '/login'} className="text-primary font-label-md flex items-center gap-xs hover:underline">
               View Community Map <span className="material-symbols-outlined">arrow_right_alt</span>
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-lg">
-            {recentDonations.map((donation) => (
-              <div key={donation.id} className="bg-surface border border-outline-variant rounded-lg overflow-hidden group">
-                <div className="h-48 overflow-hidden relative">
-                  <img
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    src={donation.image}
-                    alt={donation.itemName}
-                  />
-                  <div className="absolute top-md right-md bg-primary text-on-primary px-sm py-xs rounded-md font-label-sm">
-                    Free
-                  </div>
-                </div>
-                <div className="p-md">
-                  <div className="flex justify-between items-start mb-xs">
-                    <h4 className="font-label-md text-primary">{donation.itemName}</h4>
-                    <span className="text-xs text-on-surface-variant">{donation.createdAt ? donation.createdAt : 'New'}</span>
-                  </div>
-                  <p className="text-xs text-on-surface-variant mb-md flex items-center gap-xs">
-                    <span className="material-symbols-outlined text-sm">location_on</span> {donation.pickupLocation}
-                  </p>
-                  <Link to={isAuthenticated ? `/donations/${donation.id}` : '/login'}>
-                    <Button variant="primary" className="w-full py-sm font-label-sm">View Listing</Button>
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+          <CommunityMarketplaceGrid
+            donations={donations}
+            loading={loading}
+            isAuthenticated={isAuthenticated}
+            variant="home"
+          />
         </div>
       </section>
 

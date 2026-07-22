@@ -25,8 +25,17 @@ app.use(cookieParser());
 
 //importing routes here
 import userRouter from "./routes/user.routes.js"
+import categoryRouter from "./routes/category.routes.js"
+import foodRouter from "./routes/food.routes.js"
+import donationRouter from "./routes/donation.routes.js";
+import notificationRouter from "./routes/notification.routes.js";
+import mealPlanRouter from "./routes/mealPlan.routes.js";
 
 app.use("/api/v1/users",userRouter);
-
+app.use("/api/v1/category",categoryRouter);
+app.use("/api/v1/food",foodRouter);
+app.use("/api/v1/donation",donationRouter);
+app.use("/api/v1/notifications", notificationRouter);
+app.use("/api/v1/meal-plans", mealPlanRouter);
 
 export {app};

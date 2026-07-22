@@ -12,6 +12,11 @@ const TABS = [
     icon: "account_circle",
   },
   {
+    id: "privacy",
+    label: "Privacy",
+    icon: "visibility",
+  },
+  {
     id: "security",
     label: "Security",
     icon: "shield_lock",
@@ -26,6 +31,7 @@ export default function Settings() {
     updateAvatar,
     changePassword,
     toggleTwoFactor,
+    updatePrivacySettings,
   } = useAuth();
 
   const { showToast } = useNotifications();
@@ -56,6 +62,11 @@ export default function Settings() {
     oldPassword: "",
     newPassword: "",
     confirmPassword: "",
+  });
+
+  const [privacyForm, setPrivacyForm] = useState({
+    foodListingVisibility: user?.foodListingVisibility || "Community",
+    twoFAEnabled: user?.twoFAEnabled || false,
   });
 
   // ======================
@@ -144,6 +155,20 @@ export default function Settings() {
     } catch (err) {
       showToast(
         err.response?.data?.message || "Unable to update settings",
+        "error"
+      );
+    }
+  }
+
+  async function savePrivacySettings(e) {
+    e.preventDefault();
+
+    try {
+      await updatePrivacySettings(privacyForm);
+      showToast("Privacy settings updated successfully");
+    } catch (err) {
+      showToast(
+        err.response?.data?.message || "Unable to update privacy settings",
         "error"
       );
     }
@@ -334,6 +359,67 @@ export default function Settings() {
 
             </>
 
+          )}
+
+          {/* ==========================
+              PRIVACY
+          =========================== */}
+
+          {tab === "privacy" && (
+            <>
+              <h3 className="font-headline-md text-primary mb-lg">
+                Privacy Settings
+              </h3>
+
+              <form
+                onSubmit={savePrivacySettings}
+                className="space-y-lg max-w-xl"
+              >
+                <div className="space-y-sm">
+                  <label className="font-label-md text-on-surface block">
+                    Food Listing Visibility
+                  </label>
+                  <p className="text-sm text-on-surface-variant mb-sm">
+                    Control who can see food items you share or list for donation.
+                  </p>
+                  <select
+                    className="w-full border border-outline-variant rounded-lg px-md py-sm bg-white"
+                    value={privacyForm.foodListingVisibility}
+                    onChange={(e) =>
+                      setPrivacyForm({
+                        ...privacyForm,
+                        foodListingVisibility: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="Public">Public — visible to everyone</option>
+                    <option value="Community">Community — visible to logged-in users</option>
+                    <option value="Private">Private — only visible to you</option>
+                  </select>
+                </div>
+
+                <label className="flex items-center gap-md cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={privacyForm.twoFAEnabled}
+                    onChange={(e) =>
+                      setPrivacyForm({
+                        ...privacyForm,
+                        twoFAEnabled: e.target.checked,
+                      })
+                    }
+                    className="w-5 h-5 rounded-sm"
+                  />
+                  <span className="font-label-md text-on-surface-variant">
+                    Enable Two-Factor Authentication for login
+                  </span>
+                </label>
+
+                <Button type="submit" icon="save">
+                  Save Privacy Settings
+                </Button>
+              </form>
+            </>
           )}
 
           {/* ==========================

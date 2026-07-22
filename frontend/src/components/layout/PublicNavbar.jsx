@@ -79,6 +79,22 @@ export default function PublicNavbar() {
                       <span className="material-symbols-outlined text-[18px]">dashboard</span>
                       Dashboard
                     </Link>
+                    <Link
+                      to="/donations"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-sm px-md py-sm text-label-md text-on-surface hover:bg-surface-container-low transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">volunteer_activism</span>
+                      Browse Donations
+                    </Link>
+                    <Link
+                      to="/settings"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-sm px-md py-sm text-label-md text-on-surface hover:bg-surface-container-low transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">settings</span>
+                      Settings
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-sm text-left px-md py-sm text-label-md text-error hover:bg-surface-container-low transition-colors"
@@ -141,6 +157,14 @@ export default function PublicNavbar() {
                 >
                   <span className="material-symbols-outlined text-[18px]">dashboard</span>
                   Dashboard
+                </Link>
+                <Link
+                  to="/donations"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-sm font-label-md text-on-surface-variant"
+                >
+                  <span className="material-symbols-outlined text-[18px]">volunteer_activism</span>
+                  Browse Donations
                 </Link>
                 <button onClick={handleLogout} className="flex items-center gap-sm text-left font-label-md text-error">
                   <span className="material-symbols-outlined text-[18px]">logout</span>

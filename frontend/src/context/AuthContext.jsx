@@ -3,14 +3,42 @@ import { authService } from '../services/authService';
 
 export const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
+function readStoredUser() {
+  try {
     const stored = localStorage.getItem('saveplate_user');
-    return stored ? JSON.parse(stored) : null;
-  });
+    if (!stored) return null;
+
+    const parsed = JSON.parse(stored);
+    if (!parsed?.accessToken) {
+      localStorage.removeItem('saveplate_user');
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    localStorage.removeItem('saveplate_user');
+    return null;
+  }
+}
+
+let initialAuthState;
+
+function getInitialAuthState() {
+  if (!initialAuthState) {
+    const storedUser = readStoredUser();
+    initialAuthState = {
+      user: storedUser,
+      isAuthenticated: !!storedUser,
+    };
+  }
+  return initialAuthState;
+}
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => getInitialAuthState().user);
 
   const [isAuthenticated, setIsAuthenticated] = useState(
-    () => !!localStorage.getItem('saveplate_user')
+    () => getInitialAuthState().isAuthenticated
   );
 
   const [pendingIdentity, setPendingIdentity] = useState(null);
@@ -19,13 +47,32 @@ export function AuthProvider({ children }) {
   // Helper
   // =========================
 
-  function persistUser(loggedInUser) {
-    setUser(loggedInUser);
+  function persistUser(loggedInUser, tokens = {}) {
+    let existing = {};
+    try {
+      const stored = localStorage.getItem('saveplate_user');
+      if (stored) existing = JSON.parse(stored);
+    } catch {
+      // ignore parse errors
+    }
+
+    const userData = {
+      ...existing,
+      ...loggedInUser,
+      ...(tokens.accessToken && { accessToken: tokens.accessToken }),
+      ...(tokens.refreshToken && { refreshToken: tokens.refreshToken }),
+    };
+
+    if (!tokens.accessToken && existing.accessToken) {
+      userData.accessToken = existing.accessToken;
+    }
+    if (!tokens.refreshToken && existing.refreshToken) {
+      userData.refreshToken = existing.refreshToken;
+    }
+
+    setUser(userData);
     setIsAuthenticated(true);
-    localStorage.setItem(
-      'saveplate_user',
-      JSON.stringify(loggedInUser)
-    );
+    localStorage.setItem('saveplate_user', JSON.stringify(userData));
   }
 
   function buildIdentityPayload(identity) {
@@ -53,7 +100,10 @@ export function AuthProvider({ children }) {
     const { data } = res.data;
 
     if (data?.accessToken) {
-      persistUser(data.loggedInUser);
+      persistUser(data.loggedInUser, {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+      });
       return { requiresOtp: false };
     }
 
@@ -72,7 +122,10 @@ export function AuthProvider({ children }) {
 
     const { data } = res.data;
 
-    persistUser(data.loggedInUser);
+    persistUser(data.loggedInUser, {
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+    });
 
     setPendingIdentity(null);
 
@@ -125,18 +178,31 @@ export function AuthProvider({ children }) {
     return authService.verifyRegistrationOtp(payload);
   }
 
+  async function resendRegistrationOtp(identity) {
+    return authService.resendRegistrationOtp(buildIdentityPayload(identity));
+  }
+
+  async function updatePrivacySettings(settings) {
+    const res = await authService.updatePrivacySettings(settings);
+    persistUser(res.data.data);
+    return res.data.data;
+  }
+
   // =====================================================
   // NEW FUNCTIONS
   // =====================================================
 
   async function getCurrentUser() {
-    const res = await authService.getCurrentUser();
-
-    const loggedInUser = res.data.data;
-
-    persistUser(loggedInUser);
-
-    return loggedInUser;
+    try {
+      const res = await authService.getCurrentUser();
+      const loggedInUser = res.data.data;
+      persistUser(loggedInUser);
+      return loggedInUser;
+    } catch (error) {
+      console.error('Failed to fetch current user:', error);
+      // If endpoint doesn't exist, user data is already in localStorage
+      return user;
+    }
   }
 
   async function updateProfile(profileData) {
@@ -204,12 +270,14 @@ export function AuthProvider({ children }) {
     resetPassword,
 
     verifyRegistrationOtp,
+    resendRegistrationOtp,
 
     getCurrentUser,
     updateProfile,
     updateAvatar,
     changePassword,
     toggleTwoFactor,
+    updatePrivacySettings,
   };
 
   return (
