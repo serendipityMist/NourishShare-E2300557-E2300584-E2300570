@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { forgotPassword, loginUser, logoutUser, refreshAccessToken,updateProfile,
-    updateAvatar, registerUser, resetPassword, verifyLoginOTP, verifyOTP, changePassword, toggleTwoFactor,verifyRegistrationOtp } from "../controllers/user.controller.js";
+import { forgotPassword, loginUser, logoutUser, refreshAccessToken, updateProfile,
+    updateAvatar, registerUser, resetPassword, verifyLoginOTP, verifyOTP, changePassword, toggleTwoFactor, verifyRegistrationOtp, getCurrentUser, updatePrivacySettings, resendRegistrationOtp } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -26,6 +26,8 @@ router.route("/forgotPassword").post(forgotPassword);
 router.route("/verifyOTP").post(verifyOTP);
 router.route("/resetPassword").post(resetPassword);
 router.route("/verifyRegistrationOtp").post(verifyRegistrationOtp);
+router.route("/resendRegistrationOtp").post(resendRegistrationOtp);
+router.route("/currentUser").get(verifyJWT, getCurrentUser);
 
 router.route("/updateProfile")
 .patch(
@@ -55,6 +57,12 @@ router.route("/toggle2FA")
 .patch(
     verifyJWT,
     toggleTwoFactor
+);
+
+router.route("/privacySettings")
+.patch(
+    verifyJWT,
+    updatePrivacySettings
 );
 
 export default router;
