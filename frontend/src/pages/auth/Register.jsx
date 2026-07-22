@@ -96,7 +96,7 @@ export default function Register() {
       <form className="space-y-lg max-w-2xl" onSubmit={handleSubmit}>
 
         <div className="space-y-lg">
-          <Input label="Full Name" placeholder="Ahmad Zulkifli" value={form.fullName}
+          <Input label="Full Name" placeholder="Susmita Shrestha" value={form.fullName}
             onChange={(e) => update('fullName', e.target.value)} error={errors.fullName} required />
 
           <Input label="Phone Number" type="tel" placeholder="012-345 6789" value={form.phone}
