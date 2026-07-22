@@ -151,7 +151,7 @@ export default function Home() {
                 />
               </div>
             </div>
-            <div className="bg-secondary-container p-lg rounded-xl text-on-secondary-container card-hover reveal-on-scroll">
+            <div className="bg-[#8B0000] p-lg rounded-xl text-white card-hover reveal-on-scroll">
               <span className="material-symbols-outlined mb-md text-3xl">timer</span>
               <h3 className="font-headline-md mb-sm">Expiry Alerts</h3>
               <p className="font-body-md opacity-90">Gentle reminders that prioritize your most perishable items, like fresh produce and dairy.</p>
