@@ -7,7 +7,7 @@ export default function PublicFooter() {
       <div className="max-w-7xl mx-auto px-lg grid grid-cols-1 md:grid-cols-4 gap-xl">
         <div className="md:col-span-1">
           <div className="flex items-center gap-sm mb-md">
-            <img src={logoImg} alt="NourishShare" className="h-24 w-24 rounded-lg object-cover" />
+            <img src={logoImg} alt="NourishShare" className="h-32 w-32 rounded-lg object-cover" />
           </div>
           <p className="font-label-sm text-on-surface-variant mb-lg">
             A digital ecosystem for mindful consumption and food waste reduction in Malaysia.
