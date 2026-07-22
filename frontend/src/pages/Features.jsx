@@ -213,7 +213,7 @@ export default function Features() {
               </Link>
               <Link
                 to="/how-it-works"
-                className="w-full sm:w-auto border border-primary-fixed-dim text-primary-fixed-dim px-xl py-md rounded-full font-label-md text-lg hover:bg-primary-container transition-colors text-center"
+                className="w-full sm:w-auto border border-orange-300 text-orange-400 px-xl py-md rounded-full font-label-md text-lg hover:bg-orange-50 transition-colors text-center"
               >
                 Learn More
               </Link>
