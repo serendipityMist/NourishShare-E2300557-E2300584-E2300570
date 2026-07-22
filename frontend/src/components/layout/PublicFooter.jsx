@@ -10,7 +10,7 @@ export default function PublicFooter() {
             <img src={logoImg} alt="NourishShare" className="h-32 w-32 rounded-lg object-cover" />
           </div>
           <p className="font-label-sm text-on-surface-variant mb-lg">
-            A digital ecosystem for mindful consumption and food waste reduction in Malaysia.
+            A digital ecosystem for mindful consumption and food waste reduction in Nepal.
           </p>
           <div className="flex gap-md">
             <Link
