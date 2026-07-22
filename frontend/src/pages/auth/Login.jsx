@@ -51,7 +51,7 @@ export default function Login() {
   <form className="space-y-lg text-white" onSubmit={handleSubmit}>
     <Input
       label="Email or Phone Number"
-      className="!text-white placeholder:!text-white/50"
+      className="text-white"
       placeholder="example@gmail.com"
       value={identity}
       onChange={(e) => setIdentity(e.target.value)}
