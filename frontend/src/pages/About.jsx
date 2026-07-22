@@ -24,8 +24,8 @@ const TOOLS = [
     icon: 'calendar_month',
     title: 'Meal Orchestration',
     desc: "Get suggestions based on what's about to expire — save money and reduce waste through smart planning.",
-    accent: 'bg-tertiary-fixed text-on-tertiary',
-    accentBg: 'bg-tertiary-fixed/10',
+    accent: 'bg-tertiary-container text-on-tertiary-container',
+    accentBg: 'bg-tertiary-container/10',
     to: '/meal-planner',
   },
 ];
@@ -127,13 +127,13 @@ export default function About() {
             </div>
             <div className="stamp-effect text-secondary font-bold uppercase text-sm">Pantry Approved</div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-lg">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-xl">
             {TOOLS.map((tool) => (
-              <div key={tool.title} className={`${tool.accentBg} border border-outline-variant p-lg rounded-xl flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-300`}>
-                <div className={`${tool.accent} w-12 h-12 rounded-full flex items-center justify-center mb-lg shadow-sm`}>
-                  <span className="material-symbols-outlined text-2xl">{tool.icon}</span>
+              <div key={tool.title} className={`${tool.accentBg} border border-outline-variant p-xl rounded-3xl flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all duration-300`}>
+                <div className={`${tool.accent} w-14 h-14 rounded-full flex items-center justify-center mb-xl shadow-sm`}>
+                  <span className="material-symbols-outlined text-3xl">{tool.icon}</span>
                 </div>
-                <h3 className="font-headline-md mb-md text-primary">{tool.title}</h3>
+                <h3 className="font-headline-md mb-lg text-primary">{tool.title}</h3>
                 <p className="font-body-md text-on-surface-variant">{tool.desc}</p>
                 <Link
                   to={toolLink(tool.to)}
