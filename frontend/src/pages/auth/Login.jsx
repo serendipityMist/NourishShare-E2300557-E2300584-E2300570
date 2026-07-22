@@ -59,7 +59,7 @@ export default function Login() {
 
     <div className="space-y-xs">
       <div className="flex justify-between items-center">
-        <label className="font-label-md text-label-md text-white block">
+        <label htmlFor="login-password" className="font-label-md text-label-md text-white block">
           Password
         </label>
 
@@ -73,6 +73,7 @@ export default function Login() {
 
       <div className="relative">
         <input
+          id="login-password"
           className="stamped-input py-sm font-body-md !text-white placeholder:!text-white/50 border-surface/25 bg-transparent w-full pr-xl"
           placeholder="••••••••"
           type={showPassword ? "text" : "password"}
