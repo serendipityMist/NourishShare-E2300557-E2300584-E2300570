@@ -161,7 +161,7 @@ export default function Home() {
               <h3 className="font-headline-md mb-sm">Community Donations</h3>
               <p className="font-body-md opacity-90">Securely list excess food for local shelters or neighbors in a few taps.</p>
             </div>
-            <div className="md:col-span-2 bg-tertiary-fixed p-lg rounded-xl flex items-center gap-lg card-hover reveal-on-scroll">
+            <div className="md:col-span-2 bg-tertiary-fixed p-lg rounded-xl flex items-start gap-lg card-hover reveal-on-scroll">
               <div className="flex-1">
                 <span className="material-symbols-outlined text-tertiary mb-md">restaurant_menu</span>
                 <h3 className="font-headline-md text-tertiary mb-sm">Smart Meal Planner</h3>
