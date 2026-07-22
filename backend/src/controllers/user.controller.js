@@ -103,17 +103,17 @@ const registerUser = asyncHandler(async (req, res) => {
 
     try {
         const info = await transporter.sendMail({
-            from: '"SavePlate Team" <nourish.sharee@gmail.com>',
+            from: '"NourishShare Team" <nourish.sharee@gmail.com>',
             to: user.email,
-            subject: "Verify your SavePlate account",
+            subject: "Verify your NourishShare account",
             text: `
                 Hello ${user.name},
-                Welcome to SavePlate.
+                Welcome to NourishShare.
                 Your verification code is:
                 ${otp}
                 This code is valid for 2 minutes.
                 `,
-                html: `
+            html: `
                 <p>Hello ${user.name}</p>
                 <p>Your OTP is</p>
                 <h1>${otp}</h1>
@@ -187,8 +187,9 @@ const loginUser = asyncHandler(async (req, res) => {
         //sending cookies
         const options = {
             httpOnly: true,
-            secure: true
-        }
+            secure: false,
+            sameSite: "lax"
+        };
 
         return res.status(200)
             .cookie("accessToken", accessToken, options)
@@ -276,8 +277,9 @@ const verifyLoginOTP = asyncHandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: true
-    }
+        secure: false,
+        sameSite: "lax"
+    };
 
     user.otp = undefined;
     user.isOtpVerified = true;
@@ -308,12 +310,13 @@ const logoutUser = asyncHandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: true
-    }
+        secure: false,
+        sameSite: "lax"
+    };
 
     res.status(200)
-        .cookie("accessToken", options)
-        .cookie("refreshToken", options)
+        .cookie("accessToken", "", options)
+        .cookie("refreshToken", "", options)
         .json(new ApiResponse(200, {}, "User logged out successfully"));
 })
 
@@ -339,15 +342,16 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
         const options = {
             httpOnly: true,
-            secure: true
-        }
-        const { accessToken, freshRefreshToken } = await generateAccessAndRefreshToken(user._id);
+            secure: false,
+            sameSite: "lax"
+        };
+        const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshToken(user._id);
 
         return res.status(200)
             .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", freshRefreshToken, options)
+            .cookie("refreshToken", newRefreshToken, options)
             .json(new ApiResponse(200, {
-                accessToken, freshRefreshToken
+                accessToken, refreshToken: newRefreshToken
             },
                 "Access Token Refreshed")
             )
@@ -702,11 +706,106 @@ const toggleTwoFactor = asyncHandler(async (req, res) => {
         new ApiResponse(
             200,
             updatedUser,
-            `Two Factor Authentication ${
-                updatedUser.twoFAEnabled ? "enabled" : "disabled"
+            `Two Factor Authentication ${updatedUser.twoFAEnabled ? "enabled" : "disabled"
             } successfully`
         )
     );
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken, forgotPassword, verifyOTP, resetPassword, verifyLoginOTP, verifyRegistrationOtp, updateAvatar, updateProfile,changePassword, toggleTwoFactor };
+//getCurrentUser
+const getCurrentUser = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id).select(
+        "-password -refreshToken -otp -otpExpiry -registrationOtp -registrationOtpExpiry -isOtpVerified"
+    );
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, user, "Current user fetched successfully")
+    );
+});
+
+const updatePrivacySettings = asyncHandler(async (req, res) => {
+    const { foodListingVisibility, twoFAEnabled } = req.body;
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (foodListingVisibility) {
+        const allowed = ["Public", "Community", "Private"];
+        if (!allowed.includes(foodListingVisibility)) {
+            throw new ApiError(400, "Invalid food listing visibility setting");
+        }
+        user.foodListingVisibility = foodListingVisibility;
+    }
+
+    if (twoFAEnabled !== undefined) {
+        user.twoFAEnabled = !!twoFAEnabled;
+    }
+
+    await user.save({ validateBeforeSave: false });
+
+    const updatedUser = await User.findById(user._id)
+        .select("-password -refreshToken -otp -otpExpiry -registrationOtp -registrationOtpExpiry");
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedUser, "Privacy settings updated successfully")
+    );
+});
+
+const resendRegistrationOtp = asyncHandler(async (req, res) => {
+    const { email, phone } = req.body;
+
+    if (!(email || phone)) {
+        throw new ApiError(400, "Please enter email or phone number");
+    }
+
+    const user = await User.findOne({
+        $or: [{ email }, { phone }]
+    });
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (user.isAccountActive) {
+        throw new ApiError(400, "Account is already active");
+    }
+
+    const otp = generateOTP();
+    user.registrationOtp = otp;
+    user.registrationOtpExpiry = new Date(Date.now() + 2 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+
+    try {
+        await transporter.sendMail({
+            from: '"NourishShare Team" <nourish.sharee@gmail.com>',
+            to: user.email,
+            subject: "Your new NourishShare verification code",
+            text: `
+                Hello ${user.name},
+                Your new verification code is: ${otp}
+                This code is valid for 2 minutes.
+            `,
+            html: `
+                <p>Hello ${user.name},</p>
+                <p>Your new verification code is:</p>
+                <h1>${otp}</h1>
+                <p>This code is valid for 2 minutes.</p>
+            `
+        });
+    } catch (err) {
+        throw new ApiError(500, "Unable to send verification email. Please try again.");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, {}, "A new verification code has been sent to your email")
+    );
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken, forgotPassword, verifyOTP, resetPassword, verifyLoginOTP, verifyRegistrationOtp, updateAvatar, updateProfile, changePassword, toggleTwoFactor, getCurrentUser, updatePrivacySettings, resendRegistrationOtp };
