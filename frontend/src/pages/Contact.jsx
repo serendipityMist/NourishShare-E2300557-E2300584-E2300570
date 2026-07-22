@@ -67,7 +67,7 @@ export default function Contact() {
                     <label className="font-label-md text-label-md text-on-surface">Name</label>
                     <input
                       className="w-full bg-surface-container-low border-none rounded-lg p-md input-inset focus:ring-2 focus:ring-primary-container font-body-md"
-                      placeholder="Ahmad Zaki"
+                      placeholder="Rupesh Thapa"
                       type="text"
                       value={form.name}
                       onChange={(e) => update('name', e.target.value)}
@@ -78,7 +78,7 @@ export default function Contact() {
                     <label className="font-label-md text-label-md text-on-surface">Email</label>
                     <input
                       className="w-full bg-surface-container-low border-none rounded-lg p-md input-inset focus:ring-2 focus:ring-primary-container font-body-md"
-                      placeholder="ahmad@example.com"
+                      placeholder="rupesh@example.com"
                       type="email"
                       value={form.email}
                       onChange={(e) => update('email', e.target.value)}
