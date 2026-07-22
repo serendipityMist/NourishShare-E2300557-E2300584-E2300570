@@ -62,6 +62,12 @@ const userSchema = new mongoose.Schema({
         required: true,
         default: false
     },
+    foodListingVisibility:{
+        type: String,
+        enum: ["Public", "Community", "Private"],
+        default: "Community",
+        required: true
+    },
     // Account becomes active only after registration/email verification
     isAccountActive:{
         type: Boolean,
