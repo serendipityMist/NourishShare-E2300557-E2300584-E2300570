@@ -74,7 +74,7 @@ export default function PublicFooter() {
               <span className="material-symbols-outlined text-sm">mail</span> nourish.sharee@gmail.com
             </li>
             <li className="flex items-center gap-xs">
-              <span className="material-symbols-outlined text-sm">location_on</span> Kuala Lumpur, Malaysia
+              <span className="material-symbols-outlined text-sm">location_on</span> Gyaneshwor, Kathmandu, Nepal
             </li>
           </ul>
         </div>
