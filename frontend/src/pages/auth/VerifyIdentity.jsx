@@ -7,11 +7,11 @@ import { useAuth } from '../../hooks/useAuth';
 
 export default function VerifyIdentity() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { verifyLoginOtp } = useAuth();
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
-  const [trustDevice, setTrustDevice] = useState(false);
-  const [time, setTime] = useState(299);
+  const [submitting, setSubmitting] = useState(false);
+  const [time, setTime] = useState(119);
 
   useEffect(() => {
     if (time <= 0) return;
@@ -22,14 +22,22 @@ export default function VerifyIdentity() {
   const minutes = String(Math.floor(time / 60)).padStart(2, '0');
   const seconds = String(time % 60).padStart(2, '0');
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (code.length !== 6) {
-      setError('Enter the 6-digit code sent to your device.');
+      setError('Enter the 6-digit code sent to your email.');
       return;
     }
-    login();
-    navigate('/dashboard');
+    setError('');
+    setSubmitting(true);
+    try {
+      await verifyLoginOtp(code);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Invalid or expired code.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -41,7 +49,7 @@ export default function VerifyIdentity() {
           </div>
           <h1 className="font-headline-md text-headline-md text-primary text-center">Identity Verification</h1>
           <p className="font-body-md text-body-md text-on-surface-variant text-center max-w-[280px]">
-            To keep your Digital Pantry secure, enter the 6-digit code sent to your registered device.
+            We&apos;ve emailed a 6-digit code to your registered email address. Enter it below to continue.
           </p>
         </header>
         <form className="flex flex-col gap-lg" onSubmit={handleSubmit}>
@@ -56,19 +64,8 @@ export default function VerifyIdentity() {
               </span>
             </p>
           </div>
-          <label className="flex items-center gap-md cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={trustDevice}
-              onChange={(e) => setTrustDevice(e.target.checked)}
-              className="w-5 h-5 border-outline-variant bg-surface text-primary"
-            />
-            <span className="font-body-md text-body-md text-on-surface group-hover:text-primary transition-colors">
-              Trust this device for 30 days
-            </span>
-          </label>
-          <Button type="submit" className="w-full" icon="verified_user">
-            Verify Identity
+          <Button type="submit" className="w-full" disabled={submitting} icon="verified_user">
+            {submitting ? 'Verifying...' : 'Verify Identity'}
           </Button>
         </form>
       </div>

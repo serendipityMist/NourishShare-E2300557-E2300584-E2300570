@@ -1,57 +1,84 @@
-import { createContext, useCallback, useState } from 'react';
+import { createContext, useCallback, useEffect, useState } from 'react';
+import { notificationService } from '../services/notificationService';
+import { useAuth } from '../hooks/useAuth';
 
 export const NotificationContext = createContext(null);
 
-let idCounter = 1;
+let toastCounter = 1;
 
-const INITIAL_NOTIFICATIONS = [
-  {
-    id: idCounter++,
-    type: 'expiry',
-    title: 'Farmhouse Milk is expiring soon',
-    message: 'Expires in 2 days. Consider using it or listing it for donation.',
-    read: false,
-    createdAt: Date.now() - 1000 * 60 * 30,
-  },
-  {
-    id: idCounter++,
-    type: 'donation',
-    title: 'Your listing was claimed',
-    message: '"Bird\'s Eye Chilies" was claimed by a neighbor.',
-    read: false,
-    createdAt: Date.now() - 1000 * 60 * 60 * 3,
-  },
-  {
-    id: idCounter++,
-    type: 'account',
-    title: 'Welcome to SavePlate',
-    message: 'Your account was created successfully.',
-    read: true,
-    createdAt: Date.now() - 1000 * 60 * 60 * 24,
-  },
-];
+function mapNotification(notification) {
+  return {
+    id: notification._id,
+    type: notification.notificationType?.toLowerCase() || 'account',
+    title: notification.title,
+    message: notification.description,
+    read: notification.isRead,
+    createdAt: new Date(notification.createdAt).getTime(),
+  };
+}
 
 export function NotificationProvider({ children }) {
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+  const { isAuthenticated } = useAuth();
+  const [notifications, setNotifications] = useState([]);
   const [toasts, setToasts] = useState([]);
+
+  const fetchNotifications = useCallback(async () => {
+    if (!isAuthenticated) {
+      setNotifications([]);
+      return;
+    }
+
+    try {
+      const res = await notificationService.getMyNotifications();
+      const list = res.data?.data?.notifications || [];
+      setNotifications(list.map(mapNotification));
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   const addNotification = useCallback((notification) => {
     setNotifications((prev) => [
-      { id: idCounter++, read: false, createdAt: Date.now(), ...notification },
+      {
+        id: `local-${Date.now()}`,
+        read: false,
+        createdAt: Date.now(),
+        ...notification,
+      },
       ...prev,
     ]);
   }, []);
 
-  const markAsRead = useCallback((id) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  const markAsRead = useCallback(async (id) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+
+    if (String(id).startsWith('local-')) return;
+
+    try {
+      await notificationService.markAsRead(id);
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
   }, []);
 
-  const markAllAsRead = useCallback(() => {
+  const markAllAsRead = useCallback(async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+
+    try {
+      await notificationService.markAllAsRead();
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
   }, []);
 
   const showToast = useCallback((message, variant = 'success') => {
-    const toastId = idCounter++;
+    const toastId = toastCounter++;
     setToasts((prev) => [...prev, { id: toastId, message, variant }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== toastId));
@@ -68,7 +95,12 @@ export function NotificationProvider({ children }) {
     markAllAsRead,
     toasts,
     showToast,
+    fetchNotifications,
   };
 
-  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
+  return (
+    <NotificationContext.Provider value={value}>
+      {children}
+    </NotificationContext.Provider>
+  );
 }

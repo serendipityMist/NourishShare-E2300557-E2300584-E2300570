@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import PublicLayout from '../components/layout/PublicLayout.jsx';
+import { useAuth } from '../hooks/useAuth';
 import aboutImage from '../assets/gathering.jpg';
 
 const TOOLS = [
@@ -9,6 +10,7 @@ const TOOLS = [
     desc: "Track your pantry items with expiry alerts, so you always know what's in stock before you buy more.",
     accent: 'bg-primary-container text-on-primary-container',
     accentBg: 'bg-primary-container/10',
+    to: '/features#inventory',
   },
   {
     icon: 'volunteer_activism',
@@ -16,6 +18,7 @@ const TOOLS = [
     desc: 'Connect with neighbors and community groups instantly. One-tap surplus sharing makes giving easy.',
     accent: 'bg-secondary-fixed text-secondary',
     accentBg: 'bg-secondary-fixed/10',
+    to: '/features#marketplace',
   },
   {
     icon: 'calendar_month',
@@ -23,6 +26,7 @@ const TOOLS = [
     desc: "Get suggestions based on what's about to expire — save money and reduce waste through smart planning.",
     accent: 'bg-tertiary-fixed text-on-tertiary',
     accentBg: 'bg-tertiary-fixed/10',
+    to: '/meal-planner',
   },
 ];
 
@@ -48,6 +52,15 @@ const BEYOND = [
 ];
 
 export default function About() {
+  const { isAuthenticated } = useAuth();
+
+  function toolLink(to) {
+    if (to === '/meal-planner' && !isAuthenticated) {
+      return '/register';
+    }
+    return to;
+  }
+
   return (
     <PublicLayout>
       <main className="max-w-[1200px] mx-auto px-margin-mobile md:px-margin-desktop py-xl">
@@ -125,9 +138,12 @@ export default function About() {
                 </div>
                 <h3 className="font-headline-md mb-md text-primary">{tool.title}</h3>
                 <p className="font-body-md text-on-surface-variant">{tool.desc}</p>
-                <div className="mt-auto border-t border-outline-variant pt-md flex items-center gap-xs text-primary font-label-md cursor-pointer group">
+                <Link
+                  to={toolLink(tool.to)}
+                  className="mt-auto border-t border-outline-variant pt-md flex items-center gap-xs text-primary font-label-md group"
+                >
                   Learn More <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
-                </div>
+                </Link>
               </div>
             ))}
           </div>

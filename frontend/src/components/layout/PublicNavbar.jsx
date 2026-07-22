@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import logoImg from '../../assets/logoo.png';
+import Avatar from '../ui/Avatar';
 
 const LINKS = [
   { to: '/', label: 'Home', end: true },
@@ -12,7 +13,7 @@ const LINKS = [
 ];
 
 export default function PublicNavbar() {
-  const { isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -39,8 +40,7 @@ export default function PublicNavbar() {
               to={link.to}
               end={link.end}
               className={({ isActive }) =>
-                `font-label-md transition-colors ${
-                  isActive ? 'text-primary font-bold' : 'text-on-surface-variant hover:text-primary'
+                `font-label-md transition-colors ${isActive ? 'text-primary font-bold' : 'text-on-surface-variant hover:text-primary'
                 }`
               }
             >
@@ -58,9 +58,13 @@ export default function PublicNavbar() {
                 className="flex items-center gap-xs text-on-surface-variant hover:text-primary transition-colors"
                 aria-label="Account menu"
               >
-                <span className="material-symbols-outlined text-[32px]">account_circle</span>
-                <span className="material-symbols-outlined text-[18px]">
-                  {profileOpen ? 'expand_less' : 'expand_more'}
+                <Avatar
+                  src={user?.avatar}
+                  name={user?.name}
+                  size={10}
+                />
+                <span className="font-medium">
+                  {user?.name?.split(" ")[0]}
                 </span>
               </button>
               {profileOpen && (
@@ -74,6 +78,22 @@ export default function PublicNavbar() {
                     >
                       <span className="material-symbols-outlined text-[18px]">dashboard</span>
                       Dashboard
+                    </Link>
+                    <Link
+                      to="/donations"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-sm px-md py-sm text-label-md text-on-surface hover:bg-surface-container-low transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">volunteer_activism</span>
+                      Browse Donations
+                    </Link>
+                    <Link
+                      to="/settings"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-sm px-md py-sm text-label-md text-on-surface hover:bg-surface-container-low transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">settings</span>
+                      Settings
                     </Link>
                     <button
                       onClick={handleLogout}
@@ -137,6 +157,14 @@ export default function PublicNavbar() {
                 >
                   <span className="material-symbols-outlined text-[18px]">dashboard</span>
                   Dashboard
+                </Link>
+                <Link
+                  to="/donations"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-sm font-label-md text-on-surface-variant"
+                >
+                  <span className="material-symbols-outlined text-[18px]">volunteer_activism</span>
+                  Browse Donations
                 </Link>
                 <button onClick={handleLogout} className="flex items-center gap-sm text-left font-label-md text-error">
                   <span className="material-symbols-outlined text-[18px]">logout</span>

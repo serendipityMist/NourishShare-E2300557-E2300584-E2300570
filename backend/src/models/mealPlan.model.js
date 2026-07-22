@@ -26,7 +26,7 @@ const mealPlanSchema = new mongoose.Schema({
     mealName:{
         type:String,
         trim:true,
-        reuired:true
+        required:true
     },
     user:{
         type: mongoose.Schema.Types.ObjectId,
@@ -34,9 +34,8 @@ const mealPlanSchema = new mongoose.Schema({
         required:true
     },
     food:[{
-        type: mongooose.Schema.Types.ObjectId,
-        ref:"Food",
-        required:true
+        type: mongoose.Schema.Types.ObjectId,
+        ref:"Food"
     }]
 
 },{timestamps:true});

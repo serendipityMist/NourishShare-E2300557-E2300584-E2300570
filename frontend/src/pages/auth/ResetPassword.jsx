@@ -3,14 +3,17 @@ import { Link } from 'react-router-dom';
 import Button from '../../components/ui/Button.jsx';
 import Input from '../../components/ui/Input.jsx';
 import PasswordStrengthMeter from '../../components/auth/PasswordStrengthMeter.jsx';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function ResetPassword() {
+  const { resetPassword } = useAuth();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (password.length < 8) {
       setError('Password must be at least 8 characters.');
@@ -21,7 +24,15 @@ export default function ResetPassword() {
       return;
     }
     setError('');
-    setSuccess(true);
+    setSubmitting(true);
+    try {
+      await resetPassword(password);
+      setSuccess(true);
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Could not reset password. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -43,25 +54,15 @@ export default function ResetPassword() {
               </p>
             </div>
             <form className="space-y-md" onSubmit={handleSubmit}>
-              <Input
-                label="New Password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <Input label="New Password" type="password" placeholder="••••••••" value={password}
+                onChange={(e) => setPassword(e.target.value)} />
               <PasswordStrengthMeter value={password} />
-              <Input
-                label="Confirm New Password"
-                type="password"
-                placeholder="••••••••"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-              />
+              <Input label="Confirm New Password" type="password" placeholder="••••••••" value={confirm}
+                onChange={(e) => setConfirm(e.target.value)} />
               {error && <p className="text-error text-label-sm">{error}</p>}
               <div className="pt-lg">
-                <Button type="submit" className="w-full" icon="arrow_forward">
-                  Reset password
+                <Button type="submit" className="w-full" disabled={submitting} icon="arrow_forward">
+                  {submitting ? 'Resetting...' : 'Reset password'}
                 </Button>
               </div>
             </form>
@@ -81,18 +82,14 @@ export default function ResetPassword() {
             </div>
             <h2 className="font-headline-lg text-headline-lg text-on-surface mb-sm">Password updated</h2>
             <p className="font-body-md text-body-md text-on-surface-variant mb-xl">
-              Your password has been successfully reset. You can now use your new credentials to access your Digital
-              Pantry.
+              Your password has been successfully reset. You can now use your new credentials to access your Digital Pantry.
             </p>
             <div className="bg-secondary-fixed p-lg rounded-xl mb-xl border border-secondary-fixed-dim inline-block">
               <p className="font-label-md text-label-md text-secondary tracking-tight">
                 Security Tip: Use a password manager to keep your community accounts safe!
               </p>
             </div>
-            <Link
-              to="/login"
-              className="block w-full bg-primary text-on-primary font-label-md text-label-md py-md rounded-lg hover:opacity-90 active:scale-[0.98] transition-all"
-            >
+            <Link to="/login" className="block w-full bg-primary text-on-primary font-label-md text-label-md py-md rounded-lg hover:opacity-90 active:scale-[0.98] transition-all">
               Login to SavePlate
             </Link>
           </div>

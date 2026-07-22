@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema({
     gender:{
         type:String,
         required:true,
-        enumu:["Male","Female","Other"]
+        enum:["Male","Female","Other"]
     },
     occupation:{
         type:String,
@@ -56,12 +56,46 @@ const userSchema = new mongoose.Schema({
         required:true,
         default: true
     },
+    // Privacy/Security
     twoFAEnabled:{
         type: Boolean,
+        required: true,
+        default: false
+    },
+    foodListingVisibility:{
+        type: String,
+        enum: ["Public", "Community", "Private"],
+        default: "Community",
         required: true
     },
+    // Account becomes active only after registration/email verification
+    isAccountActive:{
+        type: Boolean,
+        default: false
+    },
+
     refreshToken:{
         type:String
+    },
+
+    // Login OTP (2FA)
+    otp:{
+        type:String
+    },
+    otpExpiry:{
+        type:Date
+    },
+    isOtpVerified:{
+        type:Boolean,
+        default:false
+    },
+
+    // Registration verification OTP (Use Case 1)
+    registrationOtp:{
+        type:String
+    },
+    registrationOtpExpiry:{
+        type:Date
     }
 },{timestamps:true});
 
@@ -69,11 +103,9 @@ const userSchema = new mongoose.Schema({
 //need to check this part if it is working or i am missing something
 //fixed it
 userSchema.pre("save", async function (next){
+    if(!this.isModified("password")) return;
 
-    if(!this.isModified("password")) return next();
-
-    this.password=bcrypt.hash(this.password,10);
-    next();
+    this.password = await bcrypt.hash(this.password,10);
 })
 
 //custom hook to check whether the password is same or not after hashing

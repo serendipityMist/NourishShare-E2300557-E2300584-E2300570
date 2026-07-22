@@ -13,18 +13,18 @@ export default function PublicFooter() {
             A digital ecosystem for mindful consumption and food waste reduction in Malaysia.
           </p>
           <div className="flex gap-md">
-            <a
+            <Link
               className="w-8 h-8 flex items-center justify-center border border-outline rounded-full text-primary hover:bg-primary hover:text-on-primary transition-all"
-              href="#"
+              to="/contact"
             >
               <span className="material-symbols-outlined text-sm">public</span>
-            </a>
-            <a
+            </Link>
+            <Link
               className="w-8 h-8 flex items-center justify-center border border-outline rounded-full text-primary hover:bg-primary hover:text-on-primary transition-all"
-              href="#"
+              to="/contact"
             >
               <span className="material-symbols-outlined text-sm">share</span>
-            </a>
+            </Link>
           </div>
         </div>
         <div>
@@ -43,6 +43,11 @@ export default function PublicFooter() {
             <li>
               <Link className="hover:text-primary" to="/register">
                 Get Started
+              </Link>
+            </li>
+            <li>
+              <Link className="hover:text-primary" to="/donations">
+                Browse Donations
               </Link>
             </li>
           </ul>
