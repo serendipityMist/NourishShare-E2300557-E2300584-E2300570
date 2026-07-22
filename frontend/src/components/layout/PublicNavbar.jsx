@@ -29,7 +29,7 @@ export default function PublicNavbar() {
     <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant">
       <nav className="max-w-7xl mx-auto px-lg h-24 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-xs">
-          <img src={logoImg} alt="NourishShare" className="h-24 w-24 rounded-full object-cover" />
+          <img src={logoImg} alt="NourishShare" className="h-28 w-28 rounded-full object-cover" />
         </Link>
 
         {/* Desktop links */}

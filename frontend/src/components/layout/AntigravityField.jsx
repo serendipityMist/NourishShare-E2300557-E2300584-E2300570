@@ -11,7 +11,7 @@ const SHAPES = {
 };
 
 // Full-canvas spread. Nothing is scrimmed now since there's no text underneath.
-const CORE = { top: 30, left: 50, size: 96 };
+const CORE = { top: 30, left: 50, size: 128 };
 const SATELLITES = [
   { shape: 'leaf', size: 40, top: 8, left: 12, depth: 0.6, opacity: 0.4, delay: '0s', duration: '6s' },
   { shape: 'drop', size: 30, top: 16, left: 30, depth: 1.1, opacity: 0.45, delay: '0.4s', duration: '6.6s' },

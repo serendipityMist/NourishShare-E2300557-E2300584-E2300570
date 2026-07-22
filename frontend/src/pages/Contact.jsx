@@ -2,7 +2,7 @@ import { useState } from 'react';
 import PublicLayout from '../components/layout/PublicLayout.jsx';
 
 const CONTACT_INFO = [
-  { icon: 'mail', label: 'Email Us', value: 'hello@nourishshare.my' },
+  { icon: 'mail', label: 'Email Us', value: 'nourish.sharee.com' },
   { icon: 'location_on', label: 'Our Kitchen Office', value: 'Bangsar South, Avenue 3, 59200 Kuala Lumpur' },
 ];
 
