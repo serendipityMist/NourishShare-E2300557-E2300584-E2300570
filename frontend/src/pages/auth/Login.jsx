@@ -52,7 +52,7 @@ export default function Login() {
     <Input
       label="Email or Phone Number"
       className="text-white"
-      placeholder="example@gmail.com"
+      placeholder="rupesh@gmail.com"
       value={identity}
       onChange={(e) => setIdentity(e.target.value)}
     />
