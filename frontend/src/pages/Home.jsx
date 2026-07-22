@@ -81,13 +81,7 @@ export default function Home() {
                 src="https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?auto=format&fit=crop&w=900&q=80"
               />
             </div>
-            <div className="absolute bottom-0 left-0 w-36 h-36 rounded-3xl overflow-hidden border border-surface-container-low bg-surface shadow-xl -translate-y-10 reveal-on-scroll">
-              <img
-                className="w-full h-full object-cover"
-                alt="Fresh Malaysian ingredients"
-                src="https://picsum.photos/id/1080/500/500"
-              />
-            </div>
+            
           </div>
         </div>
       </section>
