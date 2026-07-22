@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+
 import AppLayout from '../../components/layout/AppLayout.jsx';
 import InventoryRow from '../../components/inventory/InventoryRow.jsx';
 import AddEditItemModal from '../../components/inventory/AddEditItemModal.jsx';
@@ -7,63 +8,256 @@ import ConfirmDeleteModal from '../../components/inventory/ConfirmDeleteModal.js
 import CreateDonationModal from '../../components/donations/CreateDonationModal.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import Button from '../../components/ui/Button.jsx';
+
 import { useInventory } from '../../hooks/useInventory';
 import { useDonations } from '../../hooks/useDonations';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useFilters } from '../../hooks/useFilters';
-import { getExpiryStatus, daysUntil } from '../../utils/dateUtils';
 
-const STORAGE_FILTERS = ['all', 'Refrigerator', 'Freezer', 'Main Pantry', 'Countertop', 'Spice Rack'];
+import {
+  daysUntil,
+} from '../../utils/dateUtils';
+
+const STORAGE_FILTERS = [
+  'all',
+  'Refrigerator',
+  'Freezer',
+  'Pantry',
+];
 
 export default function InventoryList() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { activeItems, addItem, updateItem, deleteItem, markAsUsed } = useInventory();
-  const { createDonation } = useDonations();
-  const { showToast } = useNotifications();
+  const [
+    searchParams,
+    setSearchParams,
+  ] = useSearchParams();
 
-  const { query, setQuery, filters, setFilter, filteredItems } = useFilters(activeItems, {
-    searchKeys: ['name', 'category'],
-    initialFilters: { storageLocation: 'all' },
-    sortFns: {
-      expiry: (a, b) => (daysUntil(a.expiryDate) ?? 0) - (daysUntil(b.expiryDate) ?? 0),
-      name: (a, b) => a.name.localeCompare(b.name),
-      quantity: (a, b) => a.quantity - b.quantity,
-    },
-    initialSort: 'expiry',
-  });
+  const {
+    activeItems,
+    loading,
+    error,
+    addItem,
+    updateItem,
+    deleteItem,
+    markAsUsed,
+  } = useInventory();
 
-  const [addEditOpen, setAddEditOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [deletingItem, setDeletingItem] = useState(null);
-  const [donatingItem, setDonatingItem] = useState(null);
+  const {
+    createDonation,
+  } = useDonations();
 
-  // Support ?add=1 deep link from sidebar / dashboard CTA
+  const {
+    showToast,
+  } = useNotifications();
+
+  const {
+    query,
+    setQuery,
+    filters,
+    setFilter,
+    filteredItems,
+  } = useFilters(
+    activeItems,
+    {
+      searchKeys: [
+        'name',
+      ],
+
+      initialFilters: {
+        storageLocation:
+          'all',
+      },
+
+      sortFns: {
+        expiry: (a, b) =>
+          (daysUntil(
+            a.expiryDate
+          ) ?? 0) -
+          (daysUntil(
+            b.expiryDate
+          ) ?? 0),
+
+        name: (a, b) =>
+          a.name.localeCompare(
+            b.name
+          ),
+
+        quantity: (a, b) =>
+          (a.quantity?.number || 0) -
+          (b.quantity?.number || 0),
+      },
+
+      initialSort:
+        'expiry',
+    }
+  );
+
+  const [
+    addEditOpen,
+    setAddEditOpen,
+  ] = useState(false);
+
+  const [
+    editingItem,
+    setEditingItem,
+  ] = useState(null);
+
+  const [
+    deletingItem,
+    setDeletingItem,
+  ] = useState(null);
+
+  const [
+    donatingItem,
+    setDonatingItem,
+  ] = useState(null);
+
+  const [
+    deleting,
+    setDeleting,
+  ] = useState(false);
+
+  // ==========================================
+  // Deep link ?add=1
+  // ==========================================
   useEffect(() => {
-    if (searchParams.get('add') === '1') {
+    if (
+      searchParams.get('add') === '1'
+    ) {
       setEditingItem(null);
       setAddEditOpen(true);
-      searchParams.delete('add');
-      setSearchParams(searchParams, { replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
-  function handleSave(formData) {
-    if (editingItem) {
-      updateItem(editingItem.id, formData);
-      showToast('Item updated', 'success');
-    } else {
-      addItem(formData);
-      showToast('Item added to your pantry', 'success');
+      searchParams.delete('add');
+
+      setSearchParams(
+        searchParams,
+        {
+          replace: true,
+        }
+      );
+    }
+  }, [
+    searchParams,
+    setSearchParams,
+  ]);
+
+  // ==========================================
+  // Save Food
+  // ==========================================
+  async function handleSave(
+    formData
+  ) {
+    try {
+      if (editingItem) {
+        await updateItem(
+          editingItem._id,
+          formData
+        );
+
+        showToast(
+          'Item updated successfully',
+          'success'
+        );
+      } else {
+        await addItem(
+          formData
+        );
+
+        showToast(
+          'Item added to your pantry',
+          'success'
+        );
+      }
+    } catch (error) {
+      showToast(
+        error.message ||
+          'Failed to save item',
+        'error'
+      );
+
+      throw error;
     }
   }
 
-  function handleConvertToDonation(donationForm) {
-    createDonation(donationForm);
-    if (donatingItem) {
-      markAsUsed(donatingItem.id); // remove from active inventory since it's now listed
+  // ==========================================
+  // Delete Food
+  // ==========================================
+  async function handleDelete() {
+    if (!deletingItem) return;
+
+    try {
+      setDeleting(true);
+
+      await deleteItem(
+        deletingItem._id
+      );
+
+      showToast(
+        `${deletingItem.name} removed`,
+        'info'
+      );
+
+      setDeletingItem(null);
+    } catch (error) {
+      showToast(
+        error.message ||
+          'Failed to delete item',
+        'error'
+      );
+    } finally {
+      setDeleting(false);
     }
-    showToast('Listing published to Donations', 'success');
+  }
+
+  // ==========================================
+  // Mark Used
+  // ==========================================
+  async function handleMarkUsed(
+    item
+  ) {
+    try {
+      await markAsUsed(
+        item._id
+      );
+
+      showToast(
+        `${item.name} marked as used`,
+        'success'
+      );
+    } catch (error) {
+      showToast(
+        error.message ||
+          'Failed to mark item as used',
+        'error'
+      );
+    }
+  }
+
+  // ==========================================
+  // Convert to Donation (via API)
+  // ==========================================
+  async function handleConvertToDonation(
+    donationForm
+  ) {
+    try {
+      // donationForm = { pickUpLocation, availabilityTime }
+      await createDonation(
+        donatingItem._id,
+        donationForm
+      );
+
+      showToast(
+        'Listing published to Donations',
+        'success'
+      );
+
+      setDonatingItem(null);
+    } catch (error) {
+      showToast(
+        error.message ||
+          'Failed to create donation',
+        'error'
+      );
+    }
   }
 
   return (
@@ -74,23 +268,40 @@ export default function InventoryList() {
       searchPlaceholder="Search pantry..."
     >
       <div className="space-y-lg">
+
+        {/* Filter Bar */}
         <section className="flex flex-col md:flex-row items-start md:items-center justify-between gap-md bg-surface-container-low p-md rounded-xl border border-outline-variant sticker-shadow">
           <div className="flex flex-wrap items-center gap-sm">
-            <span className="font-label-md text-on-surface-variant mr-xs">Filter:</span>
-            {STORAGE_FILTERS.map((loc) => (
-              <button
-                key={loc}
-                onClick={() => setFilter('storageLocation', loc)}
-                className={`px-md py-xs rounded-full font-label-md border transition-all ${
-                  filters.storageLocation === loc
-                    ? 'bg-secondary-fixed text-on-secondary-fixed-variant border-secondary'
-                    : 'bg-surface-container text-on-surface-variant border-outline-variant hover:border-primary'
-                }`}
-              >
-                {loc === 'all' ? 'All Items' : loc}
-              </button>
-            ))}
+            <span className="font-label-md text-on-surface-variant mr-xs">
+              Filter:
+            </span>
+
+            {STORAGE_FILTERS.map(
+              (location) => (
+                <button
+                  key={location}
+                  onClick={() =>
+                    setFilter(
+                      'storageLocation',
+                      location
+                    )
+                  }
+                  className={`px-md py-xs rounded-full font-label-md border transition-all ${
+                    filters.storageLocation ===
+                    location
+                      ? 'bg-secondary-fixed text-on-secondary-fixed-variant border-secondary'
+                      : 'bg-surface-container text-on-surface-variant border-outline-variant hover:border-primary'
+                  }`}
+                >
+                  {location ===
+                  'all'
+                    ? 'All Items'
+                    : location}
+                </button>
+              )
+            )}
           </div>
+
           <Button
             icon="add"
             onClick={() => {
@@ -102,7 +313,27 @@ export default function InventoryList() {
           </Button>
         </section>
 
-        {filteredItems.length === 0 ? (
+        {/* Loading */}
+        {loading && (
+          <div className="py-xl text-center">
+            <p>
+              Loading your inventory...
+            </p>
+          </div>
+        )}
+
+        {/* Error */}
+        {!loading && error && (
+          <div className="p-lg bg-error-container text-error rounded-lg">
+            {error}
+          </div>
+        )}
+
+        {/* Empty */}
+        {!loading &&
+        !error &&
+        filteredItems.length ===
+          0 ? (
           <EmptyState
             icon="inventory_2"
             title="No items found"
@@ -120,68 +351,116 @@ export default function InventoryList() {
             }
           />
         ) : (
-          <div className="bg-white rounded-xl border border-outline-variant overflow-hidden sticker-shadow">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[720px]">
-                <thead className="bg-surface-container-high border-b border-outline-variant">
-                  <tr>
-                    <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Item Details</th>
-                    <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Location</th>
-                    <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Quantity</th>
-                    <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Expiry</th>
-                    <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Status</th>
-                    <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/30">
-                  {filteredItems.map((item) => (
-                    <InventoryRow
-                      key={item.id}
-                      item={item}
-                      onEdit={(i) => {
-                        setEditingItem(i);
-                        setAddEditOpen(true);
-                      }}
-                      onDelete={setDeletingItem}
-                      onMarkUsed={(i) => {
-                        markAsUsed(i.id);
-                        showToast(`${i.name} marked as used`, 'success');
-                      }}
-                      onConvertToDonation={setDonatingItem}
-                    />
-                  ))}
-                </tbody>
-              </table>
+          !loading &&
+          !error && (
+            <div className="bg-white rounded-xl border border-outline-variant overflow-hidden sticker-shadow">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[720px]">
+                  <thead className="bg-surface-container-high border-b border-outline-variant">
+                    <tr>
+                      <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">
+                        Item Details
+                      </th>
+
+                      <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">
+                        Location
+                      </th>
+
+                      <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">
+                        Quantity
+                      </th>
+
+                      <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">
+                        Expiry
+                      </th>
+
+                      <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">
+                        Status
+                      </th>
+
+                      <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-right">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-outline-variant/30">
+                    {filteredItems.map(
+                      (item) => (
+                        <InventoryRow
+                          key={item._id}
+                          item={item}
+                          onEdit={(selectedItem) => {
+                            setEditingItem(selectedItem);
+                            setAddEditOpen(true);
+                          }}
+                          onDelete={setDeletingItem}
+                          onMarkUsed={handleMarkUsed}
+                          onConvertToDonation={setDonatingItem}
+                        />
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="bg-surface-container-low px-lg py-md border-t border-outline-variant">
+                <p className="font-label-sm text-on-surface-variant">
+                  Showing{' '}
+                  {filteredItems.length}{' '}
+                  of{' '}
+                  {activeItems.length}{' '}
+                  items in your pantry
+                </p>
+              </div>
             </div>
-            <div className="bg-surface-container-low px-lg py-md border-t border-outline-variant flex items-center justify-between">
-              <p className="font-label-sm text-on-surface-variant">
-                Showing {filteredItems.length} of {activeItems.length} items in your pantry
-              </p>
-            </div>
-          </div>
+          )
         )}
       </div>
 
+      {/* Add/Edit */}
       <AddEditItemModal
         open={addEditOpen}
-        onClose={() => setAddEditOpen(false)}
+        onClose={() =>
+          setAddEditOpen(false)
+        }
         onSave={handleSave}
-        initialItem={editingItem}
+        initialItem={
+          editingItem
+        }
       />
+
+      {/* Delete */}
       <ConfirmDeleteModal
-        open={Boolean(deletingItem)}
-        onClose={() => setDeletingItem(null)}
-        onConfirm={() => {
-          deleteItem(deletingItem.id);
-          showToast(`${deletingItem.name} removed`, 'info');
-        }}
-        itemName={deletingItem?.name}
+        open={Boolean(
+          deletingItem
+        )}
+        onClose={() =>
+          setDeletingItem(null)
+        }
+        onConfirm={
+          handleDelete
+        }
+        deleting={deleting}
+        itemName={
+          deletingItem?.name
+        }
       />
+
+      {/* Donation */}
       <CreateDonationModal
-        open={Boolean(donatingItem)}
-        onClose={() => setDonatingItem(null)}
-        onCreate={handleConvertToDonation}
-        fromInventoryItem={donatingItem}
+        open={Boolean(
+          donatingItem
+        )}
+        onClose={() =>
+          setDonatingItem(null)
+        }
+        onCreate={
+          handleConvertToDonation
+        }
+        fromInventoryItem={
+          donatingItem
+        }
       />
     </AppLayout>
   );

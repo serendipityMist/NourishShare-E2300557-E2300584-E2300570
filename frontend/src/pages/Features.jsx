@@ -1,9 +1,21 @@
 import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
 import PublicLayout from '../components/layout/PublicLayout.jsx';
+import CommunityMarketplaceGrid from '../components/donations/CommunityMarketplaceGrid.jsx';
 import { useAuth } from '../hooks/useAuth';
+import { usePublicDonations } from '../hooks/usePublicDonations';
 
 export default function Features() {
   const { isAuthenticated } = useAuth();
+  const { donations, loading } = usePublicDonations(3);
+
+  useEffect(() => {
+    if (!window.location.hash) return;
+    const target = document.querySelector(window.location.hash);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
 
   return (
     <PublicLayout>
@@ -116,90 +128,20 @@ export default function Features() {
                 Join a network of neighbors reducing food waste. List surplus garden produce or pantry items you won't use, and claim treasures from others.
               </p>
             </div>
-            <button className="bg-secondary text-on-secondary px-lg py-sm rounded-full font-label-md hover:opacity-90 transition-opacity">
+            <Link
+              to={isAuthenticated ? '/donations' : '/login'}
+              className="bg-secondary text-on-secondary px-lg py-sm rounded-full font-label-md hover:opacity-90 transition-opacity inline-flex items-center justify-center"
+            >
               Browse Nearby Listings
-            </button>
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-lg">
-            <div className="bg-white border border-outline-variant rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-              <div className="h-48 relative">
-                <div
-                  className="w-full h-full bg-cover bg-center"
-                  style={{
-                    backgroundImage:
-                      "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBpNvCrX6B113SKpSmx40W1e3I3wojzDo_jbe3WeyR0Rm7r-56_Zzw3Cgb_uuRU2vpBi7ieuHOYx3d3N_nLlUiYhVxE5Cuv1OH2VRADvfcw_nZPoW57c7ppw3lXrfGy99qsxu_nY4x-dizqjHUl00sEy3QZQOh23FwqhKMyo9FLD5TlKkt6uX-w32A5XBrikgSjxXGaB8WKPhIHG_pE85dA7PVpm5BgYI6mJPchpkcftJLtED20bcs')",
-                  }}
-                />
-                <span className="absolute top-md left-md bg-secondary text-white px-md py-xs rounded-full text-label-sm">Free</span>
-              </div>
-              <div className="p-md space-y-sm">
-                <div className="flex justify-between items-start">
-                  <h4 className="font-headline-md text-headline-md">Garden Limes</h4>
-                  <span className="text-label-sm text-on-surface-variant">0.4km away</span>
-                </div>
-                <p className="text-on-surface-variant text-sm">
-                  Harvested this morning. Too many for my family to use. Come pick some up!
-                </p>
-                <div className="flex items-center gap-sm pt-sm border-t border-outline-variant">
-                  <div className="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold text-xs">SK</div>
-                  <span className="text-label-sm font-semibold">Siti K.</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white border border-outline-variant rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-              <div className="h-48 relative">
-                <div
-                  className="w-full h-full bg-cover bg-center"
-                  style={{
-                    backgroundImage:
-                      "url('https://lh3.googleusercontent.com/aida-public/AB6AXuC6LPAasU52yp2mAi9bPBkkls8Gd1-XFxhjtjd4ODCb8icU1FkoGF2SW-zefqcpy6b5ltTnFrleiDVDJ9csDWOXqTCfmqFXIyYk6dnSf4HsC79nqV5aS9uu8MaAahOQffZWjIkEOL4OICgZOGISjqBtT-4ceKjjWmv-IeabcD3NPn7dfIVmcg0mvOAA9uao-tTCzdOB_LqJwt-iORFKPfKbaUlPcOqVHHxP_1VDnY0KEsyPKMgSgLY')",
-                  }}
-                />
-                <span className="absolute top-md left-md bg-secondary text-white px-md py-xs rounded-full text-label-sm">Trade</span>
-              </div>
-              <div className="p-md space-y-sm">
-                <div className="flex justify-between items-start">
-                  <h4 className="font-headline-md text-headline-md">Ginger &amp; Lemongrass</h4>
-                  <span className="text-label-sm text-on-surface-variant">1.2km away</span>
-                </div>
-                <p className="text-on-surface-variant text-sm">
-                  Bundle of aromatics. Looking to trade for some fresh chili or curry leaves.
-                </p>
-                <div className="flex items-center gap-sm pt-sm border-t border-outline-variant">
-                  <div className="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-secondary font-bold text-xs">RK</div>
-                  <span className="text-label-sm font-semibold">Rajesh K.</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="hidden lg:block bg-white border border-outline-variant rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-              <div className="h-48 relative">
-                <div
-                  className="w-full h-full bg-cover bg-center"
-                  style={{
-                    backgroundImage:
-                      "url('https://lh3.googleusercontent.com/aida-public/AB6AXuAguBKS6GOHuU4AUJOa0RdAtCD-9Fv69QjIWvefqe8PiYEPqzMH9yCRNXHrw9CQmM7dXHZvG3Vdq6dDRm4ARciYrUOKJo02KDWUBDn3sDwerR2zTaiaCBEZT-tubYNuVCbz0AaykWsnP7GlrT6FaRq034oqzzVL8wBvzEZX_9LeiNJ0DFgWD4CSwWhFLmEgJ7GPpSW50UWIW1bRe3XL4LZhehXBB30zsq0ueX9qBeCEF_e60fr396o')",
-                  }}
-                />
-                <span className="absolute top-md left-md bg-secondary text-white px-md py-xs rounded-full text-label-sm">Free</span>
-              </div>
-              <div className="p-md space-y-sm">
-                <div className="flex justify-between items-start">
-                  <h4 className="font-headline-md text-headline-md">Homemade Sambal</h4>
-                  <span className="text-label-sm text-on-surface-variant">0.8km away</span>
-                </div>
-                <p className="text-on-surface-variant text-sm">
-                  Extra jar of my grandmother's recipe. No preservatives. Best consumed within a week.
-                </p>
-                <div className="flex items-center gap-sm pt-sm border-t border-outline-variant">
-                  <div className="w-8 h-8 rounded-full bg-tertiary-fixed flex items-center justify-center text-tertiary font-bold text-xs">LW</div>
-                  <span className="text-label-sm font-semibold">Lee W.</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <CommunityMarketplaceGrid
+            donations={donations}
+            loading={loading}
+            isAuthenticated={isAuthenticated}
+            variant="features"
+          />
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-2 gap-xl py-xl">
@@ -263,12 +205,18 @@ export default function Features() {
               Start your digital pantry today and join a growing movement of sustainable Malaysian households.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-md pt-lg">
-              <button className="w-full sm:w-auto bg-secondary text-white px-xl py-md rounded-full font-label-md text-lg hover:shadow-lg transition-all active:scale-95">
-                Download App
-              </button>
-              <button className="w-full sm:w-auto border border-primary-fixed-dim text-primary-fixed-dim px-xl py-md rounded-full font-label-md text-lg hover:bg-primary-container transition-colors">
+              <Link
+                to={isAuthenticated ? '/dashboard' : '/register'}
+                className="w-full sm:w-auto bg-secondary text-white px-xl py-md rounded-full font-label-md text-lg hover:shadow-lg transition-all active:scale-95 text-center"
+              >
+                {isAuthenticated ? 'Go to Dashboard' : 'Get Started Free'}
+              </Link>
+              <Link
+                to="/how-it-works"
+                className="w-full sm:w-auto border border-primary-fixed-dim text-primary-fixed-dim px-xl py-md rounded-full font-label-md text-lg hover:bg-primary-container transition-colors text-center"
+              >
                 Learn More
-              </button>
+              </Link>
             </div>
           </div>
         </section>

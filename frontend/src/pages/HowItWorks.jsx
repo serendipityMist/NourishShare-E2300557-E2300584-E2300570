@@ -5,6 +5,10 @@ import { useAuth } from '../hooks/useAuth';
 export default function HowItWorks() {
   const { isAuthenticated } = useAuth();
 
+  const donatePath = isAuthenticated ? '/donations' : '/login';
+  const mealPath = isAuthenticated ? '/meal-planner' : '/register';
+  const startPath = isAuthenticated ? '/dashboard' : '/register';
+
   return (
     <PublicLayout>
       <main className="max-w-[1200px] mx-auto px-[20px] md:px-[64px] py-xl">
@@ -94,15 +98,21 @@ export default function HowItWorks() {
                   Can&apos;t finish it in time? Share surplus with your neighbors through our secure portal, or generate recipes for what&apos;s left in your pantry.
                 </p>
                 <div className="flex flex-wrap gap-sm">
-                  <button className="bg-primary text-on-primary px-md py-sm rounded-full font-label-md flex items-center gap-xs">
+                  <Link
+                    to={donatePath}
+                    className="bg-primary text-on-primary px-md py-sm rounded-full font-label-md flex items-center gap-xs hover:opacity-90 transition-opacity"
+                  >
                     <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
                       volunteer_activism
                     </span>
                     Donate Surplus
-                  </button>
-                  <button className="border border-primary text-primary px-md py-sm rounded-full font-label-md">
+                  </Link>
+                  <Link
+                    to={mealPath}
+                    className="border border-primary text-primary px-md py-sm rounded-full font-label-md hover:bg-primary/5 transition-colors"
+                  >
                     Recipe Ideas
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -141,12 +151,18 @@ export default function HowItWorks() {
               Turn your kitchen into a force for good. Sustainably managed food tastes better and feels better.
             </p>
             <div className="flex flex-col sm:flex-row gap-md justify-center">
-              <button className="bg-primary text-on-primary px-xl py-lg rounded-full font-headline-md transition-all hover:scale-105 active:scale-95 shadow-md">
+              <Link
+                to={startPath}
+                className="bg-primary text-on-primary px-xl py-lg rounded-full font-headline-md transition-all hover:scale-105 active:scale-95 shadow-md text-center"
+              >
                 Get Started for Free
-              </button>
-              <button className="bg-white border border-outline-variant text-primary px-xl py-lg rounded-full font-headline-md transition-all hover:bg-surface-container-low">
+              </Link>
+              <Link
+                to={donatePath}
+                className="bg-white border border-outline-variant text-primary px-xl py-lg rounded-full font-headline-md transition-all hover:bg-surface-container-low text-center"
+              >
                 View Community Map
-              </button>
+              </Link>
             </div>
           </div>
         </section>
