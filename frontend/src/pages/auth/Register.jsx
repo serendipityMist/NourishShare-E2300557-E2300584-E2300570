@@ -156,7 +156,7 @@ export default function Register() {
             onChange={(e) => update('twoFAEnabled', e.target.checked)}
             className="w-5 h-5 rounded-sm border-surface/30 text-primary bg-surface/10 cursor-pointer" />
           <span className="font-label-md text-label-md text-surface/70">
-            Enable Two-Factor Authentication (a code will be emailed to me at login)
+            Enable Two-Factor Authentication 
           </span>
         </label>
 
