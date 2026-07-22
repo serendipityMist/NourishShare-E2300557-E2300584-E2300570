@@ -76,14 +76,14 @@ export default function About() {
             <p className="font-body-lg text-on-surface-variant mb-xl max-w-2xl">
               In a nation celebrated for its culinary heritage, we face a silent crisis. Approximately 16,688 tonnes of food waste are generated daily, with nearly 4,000 tonnes still perfectly edible. This isn't just an environmental burden—it's a missed opportunity to care for our neighbors.
             </p>
-            <div className="grid grid-cols-2 gap-lg border-t border-outline-variant pt-lg">
-              <div>
-                <span className="font-headline-md text-primary block">4,000+</span>
-                <span className="font-label-sm text-on-surface-variant">Tonnes of edible food wasted daily</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-lg border-t border-outline-variant pt-lg">
+              <div className="bg-primary-container text-on-primary-container p-md rounded-lg flex flex-col gap-xs">
+                <span className="font-headline-lg font-bold block">4,000+</span>
+                <span className="font-label-md">Tonnes of edible food wasted daily</span>
               </div>
-              <div>
-                <span className="font-headline-md text-primary block">24%</span>
-                <span className="font-label-sm text-on-surface-variant">Increase during festive seasons</span>
+              <div className="bg-primary-container text-on-primary-container p-md rounded-lg flex flex-col gap-xs">
+                <span className="font-headline-lg font-bold block">24%</span>
+                <span className="font-label-md">Increase during festive seasons</span>
               </div>
             </div>
           </div>
@@ -103,19 +103,16 @@ export default function About() {
           </div>
         </section>
 
-        {/* Mission statement */}
-        <section className="bg-primary-container text-on-primary-container p-xl rounded-xl mb-xl relative overflow-hidden">
+        {/* Mission statement (non-boxed) */}
+        <section className="mb-xl">
           <div className="relative z-10 max-w-3xl">
             <h2 className="font-label-md text-primary-fixed-dim uppercase tracking-widest mb-md">Our Mission</h2>
-            <p className="font-headline-lg mb-lg">
+            <p className="font-headline-lg mb-lg text-on-background">
               To digitize the Malaysian pantry, transforming surplus into sustainability through community-driven logistics and mindful consumption.
             </p>
-            <p className="font-body-md opacity-90 leading-relaxed">
+            <p className="font-body-md opacity-90 leading-relaxed text-on-surface-variant">
               NourishShare was born out of a simple observation: our kitchens are full, yet our neighbors are hungry. We believe that by providing the right digital tools, every household can become part of a decentralized network of food security—building infrastructure for a waste-free future, one kitchen at a time.
             </p>
-          </div>
-          <div className="absolute top-0 right-0 w-1/3 h-full opacity-10 pointer-events-none">
-            <span className="material-symbols-outlined text-[200px] absolute -right-20 -top-20">volunteer_activism</span>
           </div>
         </section>
 
