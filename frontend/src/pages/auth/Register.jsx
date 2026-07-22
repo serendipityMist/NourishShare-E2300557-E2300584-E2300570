@@ -99,7 +99,7 @@ export default function Register() {
           <Input label="Full Name" placeholder="Susmita Shrestha" value={form.fullName}
             onChange={(e) => update('fullName', e.target.value)} error={errors.fullName} required />
 
-          <Input label="Phone Number" type="tel" placeholder="012-345 6789" value={form.phone}
+          <Input label="Phone Number" type="tel" placeholder="+977-XXXX-XXXX" value={form.phone}
             onChange={(e) => update('phone', e.target.value)} error={errors.phone}
             hint={!errors.phone ? 'Used for secure collection alerts.' : undefined} required />
 
@@ -141,7 +141,7 @@ export default function Register() {
           {errors.gender && <p className="text-label-sm text-error">{errors.gender}</p>}
         </div>
 
-        <Input label="Occupation" placeholder="Software Engineer" value={form.occupation}
+        <Input label="Occupation" placeholder="Enter your occupation" value={form.occupation}
           onChange={(e) => update('occupation', e.target.value)} error={errors.occupation} required />
 
         <label className="flex items-center gap-md cursor-pointer">
@@ -156,7 +156,7 @@ export default function Register() {
             onChange={(e) => update('twoFAEnabled', e.target.checked)}
             className="w-5 h-5 rounded-sm border-surface/30 text-primary bg-surface/10 cursor-pointer" />
           <span className="font-label-md text-label-md text-surface/70">
-            Enable Two-Factor Authentication (a code will be emailed to me at login)
+            Enable Two-Factor Authentication 
           </span>
         </label>
 

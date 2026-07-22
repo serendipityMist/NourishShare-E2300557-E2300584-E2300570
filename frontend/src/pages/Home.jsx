@@ -116,7 +116,7 @@ export default function Home() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-lg">
             {STEPS.map((step) => (
               <div key={step.title} className="flex flex-col items-center text-center p-lg bg-surface border border-outline-variant rounded-lg card-hover reveal-on-scroll transition-transform duration-500 hover:-translate-y-1">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-md ${step.color}`}>
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-md bg-primary-fixed text-primary">
                   <span className="material-symbols-outlined text-3xl">{step.icon}</span>
                 </div>
                 <h3 className="font-label-md text-primary mb-sm">{step.title}</h3>
@@ -161,7 +161,7 @@ export default function Home() {
               <h3 className="font-headline-md mb-sm">Community Donations</h3>
               <p className="font-body-md opacity-90">Securely list excess food for local shelters or neighbors in a few taps.</p>
             </div>
-            <div className="md:col-span-2 bg-tertiary-fixed p-lg rounded-xl flex items-center gap-lg card-hover reveal-on-scroll">
+            <div className="md:col-span-2 bg-tertiary-fixed p-lg rounded-xl flex items-start gap-lg card-hover reveal-on-scroll">
               <div className="flex-1">
                 <span className="material-symbols-outlined text-tertiary mb-md">restaurant_menu</span>
                 <h3 className="font-headline-md text-tertiary mb-sm">Smart Meal Planner</h3>

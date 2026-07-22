@@ -71,10 +71,10 @@ export default function PublicFooter() {
           <h4 className="font-label-md text-primary mb-md">Contact</h4>
           <ul className="space-y-sm font-label-sm text-on-surface-variant">
             <li className="flex items-center gap-xs">
-              <span className="material-symbols-outlined text-sm">mail</span> hello@nourishshare.my
+              <span className="material-symbols-outlined text-sm">mail</span> nourish.sharee@gmail.com
             </li>
             <li className="flex items-center gap-xs">
-              <span className="material-symbols-outlined text-sm">location_on</span> Kuala Lumpur, Malaysia
+              <span className="material-symbols-outlined text-sm">location_on</span> Gyaneshwor, Kathmandu, Nepal
             </li>
           </ul>
         </div>
