@@ -4,280 +4,868 @@ import { ApiResponse } from "../utils/ApiReponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadFileInCloudinary } from "../utils/cloudinary.js";
 
+
+// ======================================================
+// ADD FOOD ITEM
+// ======================================================
 const addFoodItem = asyncHandler(async (req, res) => {
-    const { name, number, units, expiryDate, status, description, storageLocation, category } = req.body;
-    console.log(req.user);
-    console.log(req.user._id);
-    if (!name || !units || !status || !description || !storageLocation || !category) {
-        throw new ApiError(400, "Please enter the required fields");
-    }
-    if (number == null) {
-        throw new ApiError(400, "Please enter the quantity of food");
-    }
 
-    const foodImageLocalPath = req.files?.foodImage[0]?.path;
-    console.log(foodImageLocalPath);
+    console.log("\n========== ADD FOOD REQUEST ==========");
 
-    if (!foodImageLocalPath) {
-        throw new ApiError(400, "Food Image is required");
-    }
+    console.log("REQ BODY:");
+    console.log(req.body);
 
-    const foodImage = await uploadFileInCloudinary(foodImageLocalPath);
-    console.log("Food Image Url:", foodImage.url);
+    console.log("REQ FILES:");
+    console.log(req.files);
 
-    //creating food object
-    const food = await Food.create({
+    console.log("LOGGED IN USER ID:");
+    console.log(req.user?._id);
+
+    console.log("======================================\n");
+
+
+    // ==================================================
+    // GET DATA FROM REQUEST
+    // ==================================================
+
+    const {
         name,
-        quantity: {
-            number,
-            units
-        },
+        number,
+        units,
         expiryDate,
         status,
         description,
         storageLocation,
-        foodImage: foodImage.url,
-        category,
-        owner: req.user._id
-    })
-
-    return res.status(200).json(new ApiResponse(200, { food }, "Food Object Created"));
-})
+        category
+    } = req.body;
 
 
-const editFoodItem = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    //getting new values from the user 
-    const { name, number, units, expiryDate, status, description, storageLocation, category } = req.body;
+    // ==================================================
+    // LOG EACH FIELD
+    // ==================================================
 
-    console.log("Food ID from URL:", id);
-    console.log("Logged-in User ID:", req.user._id);
-    if (!name || !units || !status || !description || !storageLocation || !category) {
-        throw new ApiError(400, "Please enter the required fields");
-    }
-    if (number == null) {
-        throw new ApiError(400, "Please enter the quantity of food");
-    }
-
-    const food = await Food.findOne({
-        $and:[{_id:id},{owner:req.user._id}]
-
-    })
-    if (!food) {
-        throw new ApiError(404, "Food not found");
-    }
+    console.log("Food Name:", name);
+    console.log("Quantity Number:", number);
+    console.log("Units:", units);
+    console.log("Expiry Date:", expiryDate);
+    console.log("Status:", status);
+    console.log("Description:", description);
+    console.log("Storage Location:", storageLocation);
+    console.log("Category:", category);
 
 
-    const foodImageLocalPath = req.files?.foodImage?.[0]?.path;
-    console.log(foodImageLocalPath);
+    // ==================================================
+    // CHECK REQUIRED FIELDS
+    // Description is OPTIONAL
+    // ==================================================
 
-    if (foodImageLocalPath) {
-        const foodImage = await uploadFileInCloudinary(foodImageLocalPath);
-        console.log("Food Image Url:", foodImage.url);
+    const missingFields = [];
 
-        if (!foodImage) {
-            throw new ApiError(500, "Image couldn't be updated");
-        }
 
-        food.foodImage = foodImage.secure_url;
+    if (!name || name.trim() === "") {
+        missingFields.push("name");
     }
 
 
-    food.name = name;
-    food.quantity = {
-        number,
-        units
-    }
-    food.expiryDate = expiryDate;
-    food.status = status;
-    food.description = description;
-    food.storageLocation = storageLocation;
-    food.category = category;
-
-    await food.save();
-
-    // await Food.findByIdAndUpdate(id, {
-    //     $set: {
-    //         name,
-    //         quantity: {
-    //             number,
-    //             units
-    //         },
-    //         expiryDate,
-    //         status,
-    //         description,
-    //         storageLocation,
-    //         foodImage: 
-    //         category,
-    //     }
-    // })
-
-    return res.status(200).json(new ApiResponse(200, { food }, "Food Item Edited Successfully"));
-
-})
-
-
-const deleteFoodItem = asyncHandler(async(req,res)=>{
-    const {id} = req.params;
-
-        const food = await Food.findOne({
-        $and:[{_id:id},{owner:req.user._id}]
-
-    })
-    if (!food) {
-        throw new ApiError(404, "Food not found");
+    if (
+        number === undefined ||
+        number === null ||
+        number === ""
+    ) {
+        missingFields.push("number");
     }
 
-    const result = await Food.findByIdAndDelete({_id:id});
 
-    if(!result){
-        throw new ApiError(500,"Cannot delete food item");
+    if (!units || units.trim() === "") {
+        missingFields.push("units");
     }
 
-    return res.status(200).json(new ApiResponse(200,{},"Item Deleted Successfully"));
 
-})
-
-
-const getFoodDetails = asyncHandler(async(req,res)=>{
-    const {id} = req.params;
-
-    const food = await Food.findOne({
-        $and:[{_id:id},{owner:req.user._id}]
-
-    })
-     console.log("Food ID from URL:", id);
-    console.log("Logged-in User ID:", req.user._id);
-
-    if(!food){
-        throw new ApiError(404,"Food Details not found");
+    if (!expiryDate || expiryDate.trim() === "") {
+        missingFields.push("expiryDate");
     }
 
-    return res.status(200).json(new ApiResponse(200,{food},"Food data fetched successfully"));
 
-})
+    if (!status || status.trim() === "") {
+        missingFields.push("status");
+    }
 
-const getMyFoodItems = asyncHandler(async (req, res) => {
 
-    const foods = await Food.find({
-        owner: req.user._id
-    })
-    .populate("category");
+    if (
+        !storageLocation ||
+        storageLocation.trim() === ""
+    ) {
+        missingFields.push("storageLocation");
+    }
 
-    if (!foods || foods.length === 0) {
+
+    if (!category || category.trim() === "") {
+        missingFields.push("category");
+    }
+
+
+    // ==================================================
+    // IF ANY REQUIRED FIELD IS MISSING
+    // ==================================================
+
+    if (missingFields.length > 0) {
+
+        console.log(
+            "MISSING REQUIRED FIELDS:",
+            missingFields
+        );
+
         throw new ApiError(
-            404,
-            "No food items found in your inventory"
+            400,
+            `Missing required fields: ${missingFields.join(", ")}`
         );
     }
 
-    return res.status(200).json(
-        new ApiResponse(
-            200,
-            { foods },
-            "Food inventory fetched successfully"
-        )
+
+    // ==================================================
+    // VALIDATE QUANTITY
+    // ==================================================
+
+    const parsedNumber = Number(number);
+
+
+    if (
+        Number.isNaN(parsedNumber) ||
+        parsedNumber <= 0
+    ) {
+
+        throw new ApiError(
+            400,
+            "Please enter a valid quantity of food"
+        );
+
+    }
+
+
+    // ==================================================
+    // GET FOOD IMAGE
+    // ==================================================
+
+    const foodImageLocalPath =
+        req.files?.foodImage?.[0]?.path;
+
+
+    console.log(
+        "Food Image Local Path:",
+        foodImageLocalPath
     );
+
+
+    // ==================================================
+    // CHECK FOOD IMAGE
+    // ==================================================
+
+    if (!foodImageLocalPath) {
+
+        throw new ApiError(
+            400,
+            "Food Image is required"
+        );
+
+    }
+
+
+    // ==================================================
+    // UPLOAD FOOD IMAGE TO CLOUDINARY
+    // ==================================================
+
+    const foodImage =
+        await uploadFileInCloudinary(
+            foodImageLocalPath
+        );
+
+
+    if (!foodImage) {
+
+        throw new ApiError(
+            500,
+            "Failed to upload food image"
+        );
+
+    }
+
+
+    const imageUrl =
+        foodImage.secure_url ||
+        foodImage.url;
+
+
+    console.log(
+        "Food Image URL:",
+        imageUrl
+    );
+
+
+    // ==================================================
+    // CREATE FOOD ITEM
+    // ==================================================
+
+    const food = await Food.create({
+
+        name: name.trim(),
+
+        quantity: {
+            number: parsedNumber,
+            units: units.trim()
+        },
+
+        expiryDate,
+
+        status,
+
+        // Description is optional
+        description:
+            description?.trim() || "",
+
+        storageLocation:
+
+            storageLocation.trim(),
+
+        foodImage: imageUrl,
+
+        category,
+
+        owner: req.user._id
+
+    });
+
+
+    console.log(
+        "Food item created:",
+        food._id
+    );
+
+
+    // ==================================================
+    // SEND RESPONSE
+    // ==================================================
+
+    return res.status(201).json(
+
+        new ApiResponse(
+            201,
+            {
+                food
+            },
+            "Food item created successfully"
+        )
+
+    );
+
 });
 
+
+// ======================================================
+// EDIT FOOD ITEM
+// ======================================================
+const editFoodItem = asyncHandler(async (req, res) => {
+
+    const { id } = req.params;
+
+
+    console.log("\n========== EDIT FOOD REQUEST ==========");
+
+    console.log(
+        "Food ID:",
+        id
+    );
+
+    console.log(
+        "REQ BODY:",
+        req.body
+    );
+
+    console.log(
+        "REQ FILES:",
+        req.files
+    );
+
+    console.log(
+        "LOGGED IN USER:",
+        req.user?._id
+    );
+
+    console.log(
+        "=======================================\n"
+    );
+
+
+    // ==================================================
+    // GET DATA FROM REQUEST
+    // ==================================================
+
+    const {
+        name,
+        number,
+        units,
+        expiryDate,
+        status,
+        description,
+        storageLocation,
+        category
+    } = req.body;
+
+
+    // ==================================================
+    // CHECK REQUIRED FIELDS
+    // Description is OPTIONAL
+    // ==================================================
+
+    const missingFields = [];
+
+
+    if (!name || name.trim() === "") {
+        missingFields.push("name");
+    }
+
+
+    if (
+        number === undefined ||
+        number === null ||
+        number === ""
+    ) {
+        missingFields.push("number");
+    }
+
+
+    if (!units || units.trim() === "") {
+        missingFields.push("units");
+    }
+
+
+    if (!expiryDate || expiryDate.trim() === "") {
+        missingFields.push("expiryDate");
+    }
+
+
+    if (!status || status.trim() === "") {
+        missingFields.push("status");
+    }
+
+
+    if (
+        !storageLocation ||
+        storageLocation.trim() === ""
+    ) {
+        missingFields.push("storageLocation");
+    }
+
+
+    if (!category || category.trim() === "") {
+        missingFields.push("category");
+    }
+
+
+    // ==================================================
+    // IF REQUIRED FIELD IS MISSING
+    // ==================================================
+
+    if (missingFields.length > 0) {
+
+        console.log(
+            "MISSING REQUIRED FIELDS:",
+            missingFields
+        );
+
+        throw new ApiError(
+            400,
+            `Missing required fields: ${missingFields.join(", ")}`
+        );
+
+    }
+
+
+    // ==================================================
+    // VALIDATE QUANTITY
+    // ==================================================
+
+    const parsedNumber = Number(number);
+
+
+    if (
+        Number.isNaN(parsedNumber) ||
+        parsedNumber <= 0
+    ) {
+
+        throw new ApiError(
+            400,
+            "Please enter a valid quantity of food"
+        );
+
+    }
+
+
+    // ==================================================
+    // FIND FOOD ITEM
+    // Only owner can edit their food
+    // ==================================================
+
+    const food = await Food.findOne({
+
+        _id: id,
+
+        owner: req.user._id
+
+    });
+
+
+    if (!food) {
+
+        throw new ApiError(
+            404,
+            "Food item not found"
+        );
+
+    }
+
+
+    // ==================================================
+    // CHECK IF NEW IMAGE WAS UPLOADED
+    // ==================================================
+
+    const foodImageLocalPath =
+        req.files?.foodImage?.[0]?.path;
+
+
+    console.log(
+        "New Food Image Path:",
+        foodImageLocalPath
+    );
+
+
+    // ==================================================
+    // UPLOAD NEW IMAGE IF PROVIDED
+    // ==================================================
+
+    if (foodImageLocalPath) {
+
+        const foodImage =
+            await uploadFileInCloudinary(
+                foodImageLocalPath
+            );
+
+
+        if (!foodImage) {
+
+            throw new ApiError(
+                500,
+                "Image couldn't be updated"
+            );
+
+        }
+
+
+        food.foodImage =
+            foodImage.secure_url ||
+            foodImage.url;
+
+    }
+
+
+    // ==================================================
+    // UPDATE FOOD DATA
+    // ==================================================
+
+    food.name =
+        name.trim();
+
+
+    food.quantity = {
+
+        number: parsedNumber,
+
+        units: units.trim()
+
+    };
+
+
+    food.expiryDate =
+        expiryDate;
+
+
+    food.status =
+        status;
+
+
+    food.description =
+        description?.trim() || "";
+
+
+    food.storageLocation =
+        storageLocation.trim();
+
+
+    food.category =
+        category;
+
+
+    // ==================================================
+    // SAVE UPDATED FOOD
+    // ==================================================
+
+    await food.save();
+
+
+    // ==================================================
+    // RESPONSE
+    // ==================================================
+
+    return res.status(200).json(
+
+        new ApiResponse(
+
+            200,
+
+            {
+                food
+            },
+
+            "Food item edited successfully"
+
+        )
+
+    );
+
+});
+
+
+// ======================================================
+// DELETE FOOD ITEM
+// ======================================================
+const deleteFoodItem = asyncHandler(async (req, res) => {
+
+    const { id } = req.params;
+
+
+    // Find food belonging to current user
+    const food = await Food.findOne({
+
+        _id: id,
+
+        owner: req.user._id
+
+    });
+
+
+    if (!food) {
+
+        throw new ApiError(
+            404,
+            "Food not found"
+        );
+
+    }
+
+
+    // Delete food
+    const result =
+        await Food.findByIdAndDelete(id);
+
+
+    if (!result) {
+
+        throw new ApiError(
+            500,
+            "Cannot delete food item"
+        );
+
+    }
+
+
+    return res.status(200).json(
+
+        new ApiResponse(
+
+            200,
+
+            {},
+
+            "Item deleted successfully"
+
+        )
+
+    );
+
+});
+
+
+// ======================================================
+// GET FOOD DETAILS
+// ======================================================
+const getFoodDetails = asyncHandler(async (req, res) => {
+
+    const { id } = req.params;
+
+
+    const food = await Food.findOne({
+
+        _id: id,
+
+        owner: req.user._id
+
+    }).populate("category");
+
+
+    if (!food) {
+
+        throw new ApiError(
+            404,
+            "Food details not found"
+        );
+
+    }
+
+
+    return res.status(200).json(
+
+        new ApiResponse(
+
+            200,
+
+            {
+                food
+            },
+
+            "Food data fetched successfully"
+
+        )
+
+    );
+
+});
+
+
+// ======================================================
+// GET MY FOOD ITEMS
+// ======================================================
+const getMyFoodItems = asyncHandler(async (req, res) => {
+
+    const foods = await Food.find({
+
+        owner: req.user._id
+
+    }).populate("category");
+
+
+    return res.status(200).json(
+
+        new ApiResponse(
+
+            200,
+
+            {
+                foods: foods || []
+            },
+
+            foods?.length
+
+                ? "Food inventory fetched successfully"
+
+                : "No food items found in your inventory"
+
+        )
+
+    );
+
+});
+
+
+// ======================================================
+// MARK FOOD AS USED
+// ======================================================
 const markFoodAsUsed = asyncHandler(async (req, res) => {
 
     const { id } = req.params;
 
+
     const food = await Food.findOne({
+
         _id: id,
+
         owner: req.user._id
+
     });
 
+
     if (!food) {
+
         throw new ApiError(
+
             404,
+
             "Food not found or you are not authorized to update this food"
+
         );
+
     }
+
 
     if (food.status === "Used") {
+
         throw new ApiError(
+
             400,
+
             "Food item is already marked as used"
+
         );
+
     }
+
 
     if (food.status === "Donated") {
+
         throw new ApiError(
+
             400,
+
             "Donated food cannot be marked as used"
+
         );
+
     }
 
-    food.status = "Used";
+
+    food.status =
+        "Used";
+
 
     await food.save();
 
+
     return res.status(200).json(
+
         new ApiResponse(
+
             200,
-            { food },
+
+            {
+                food
+            },
+
             "Food item marked as used successfully"
+
         )
+
     );
+
 });
 
+
+// ======================================================
+// BROWSE FOOD ITEMS
+// ======================================================
 const browseFoodItems = asyncHandler(async (req, res) => {
 
     const {
+
         category,
+
         storageLocation,
+
         status,
+
         expiryBefore
+
     } = req.query;
 
 
-    // Base query
+    // Base filter
     const filter = {
+
         owner: req.user._id
+
     };
 
 
-    // Filter by category
+    // Category filter
     if (category) {
-        filter.category = category;
+
+        filter.category =
+            category;
+
     }
 
 
-    // Filter by storage location
+    // Storage location filter
     if (storageLocation) {
-        filter.storageLocation = storageLocation;
+
+        filter.storageLocation =
+            storageLocation;
+
     }
 
 
-    // Filter by status
+    // Status filter
     if (status) {
-        filter.status = status;
+
+        filter.status =
+            status;
+
     }
 
 
-    // Filter by expiry date
+    // Expiry date filter
     if (expiryBefore) {
+
         filter.expiryDate = {
-            $lte: new Date(expiryBefore)
+
+            $lte:
+                new Date(expiryBefore)
+
         };
+
     }
 
 
-    const foods = await Food.find(filter)
-        .populate("category");
+    // Get foods
+    const foods = await Food.find(
+        filter
+    ).populate("category");
 
 
     return res.status(200).json(
+
         new ApiResponse(
+
             200,
+
             {
                 foods
             },
+
             "Food items fetched successfully"
+
         )
+
     );
+
 });
 
-export { addFoodItem, editFoodItem, deleteFoodItem, getFoodDetails, getMyFoodItems, markFoodAsUsed , browseFoodItems}
+
+// ======================================================
+// EXPORT CONTROLLERS
+// ======================================================
+
+export {
+
+    addFoodItem,
+
+    editFoodItem,
+
+    deleteFoodItem,
+
+    getFoodDetails,
+
+    getMyFoodItems,
+
+    markFoodAsUsed,
+
+    browseFoodItems
+
+};
