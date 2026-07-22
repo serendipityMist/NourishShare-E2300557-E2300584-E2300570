@@ -15,7 +15,7 @@ export default function Input({ label, error, hint, id, className = '', ...props
         {...props}
       />
       {hint && !error && <span className="text-label-sm font-label-sm text-outline">{hint}</span>}
-      {error && <span className="text-label-sm font-label-sm text-error">{error}</span>}
+      {error && <span data-testid="field-error" className="text-label-sm font-label-sm text-error">{error}</span>}
     </div>
   );
 }

@@ -93,7 +93,7 @@ export default function Register() {
         <h2 className="font-headline-lg text-headline-lg text-surface mb-xs">Create Account</h2>
         <p className="text-surface/70 font-body-md">Fill in your details to start your digital pantry journey.</p>
       </div>
-      <form className="space-y-lg max-w-2xl" onSubmit={handleSubmit}>
+      <form className="space-y-lg max-w-2xl" onSubmit={handleSubmit} noValidate>
 
         <div className="space-y-lg">
           <Input label="Full Name" placeholder="Susmita Shrestha" value={form.fullName}
