@@ -38,93 +38,98 @@ export default function Login() {
   }
 
   return (
-    <AuthLayout>
-      <header className="mb-xl">
-        <h2 className="font-headline-lg text-headline-lg text-surface mb-xs">Welcome Back</h2>
-        <p className="font-body-md text-surface/70">Step back into your digital pantry.</p>
-      </header>
-      <form className="space-y-lg text-white" onSubmit={handleSubmit}>
-  <Input
-    label="Email or Phone Number"
-    className="!text-white placeholder:!text-white/50"
-    placeholder="pantry@saveplate.com"
-    value={identity}
-    onChange={(e) => setIdentity(e.target.value)}
-  />
+  <AuthLayout>
+  <header className="mb-xl">
+    <h2 className="font-headline-lg text-headline-lg text-white mb-xs">
+      Welcome Back
+    </h2>
+    <p className="font-body-md text-white/70">
+      Step back into your digital pantry.
+    </p>
+  </header>
 
-  <div className="space-y-xs">
-    <div className="flex justify-between items-center">
-      <label className="font-label-md text-label-md !text-white block">
-        Password
-      </label>
-
-      <Link
-        to="/forgot-password"
-        className="font-label-sm text-label-sm text-[#E8B44A] hover:underline"
-      >
-        Forgot password?
-      </Link>
-    </div>
-
-    <div className="relative">
-      <input
-        className="stamped-input py-sm font-body-md !text-white placeholder:!text-white/50 border-surface/25 bg-transparent w-full pr-xl"
-        placeholder="••••••••"
-        type={showPassword ? "text" : "password"}
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-
-      <button
-        type="button"
-        className="material-symbols-outlined absolute right-0 top-1/2 -translate-y-1/2 text-white/70 text-[20px] hover:text-white transition-colors"
-        onClick={() => setShowPassword((s) => !s)}
-      >
-        {showPassword ? "visibility_off" : "visibility"}
-      </button>
-    </div>
-  </div>
-
-  {error && <p className="text-error text-label-sm">{error}</p>}
-
-  <div className="flex items-center">
-    <input
-      type="checkbox"
-      id="remember"
-      checked={remember}
-      onChange={(e) => setRemember(e.target.checked)}
-      className="w-5 h-5 rounded border-surface/30 text-primary bg-surface/10 cursor-pointer"
+  <form className="space-y-lg text-white" onSubmit={handleSubmit}>
+    <Input
+      label="Email or Phone Number"
+      className="!text-white placeholder:!text-white/50"
+      placeholder="example@gmail.com"
+      value={identity}
+      onChange={(e) => setIdentity(e.target.value)}
     />
 
-    <label
-      htmlFor="remember"
-      className="ml-sm font-label-md text-label-md !text-white cursor-pointer"
-    >
-      Keep me logged in
-    </label>
-  </div>
+    <div className="space-y-xs">
+      <div className="flex justify-between items-center">
+        <label className="font-label-md text-label-md text-white block">
+          Password
+        </label>
 
-  <Button
-    type="submit"
-    className="w-full"
-    disabled={submitting}
-    icon={submitting ? undefined : "arrow_forward"}
-  >
-    {submitting ? "Logging in..." : "Log in"}
-  </Button>
+        <Link
+          to="/forgot-password"
+          className="font-label-sm text-label-sm text-[#E8B44A] hover:underline"
+        >
+          Forgot password?
+        </Link>
+      </div>
 
-  <footer className="mt-xl text-center">
-    <p className="font-body-md !text-white">
-      Don't have an account?{" "}
-      <Link
-        to="/register"
-        className="font-label-md text-label-md text-[#E8B44A] hover:underline ml-xs"
+      <div className="relative">
+        <input
+          className="stamped-input py-sm font-body-md !text-white placeholder:!text-white/50 border-surface/25 bg-transparent w-full pr-xl"
+          placeholder="••••••••"
+          type={showPassword ? "text" : "password"}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        <button
+          type="button"
+          className="material-symbols-outlined absolute right-0 top-1/2 -translate-y-1/2 text-white/70 text-[20px] hover:text-white transition-colors"
+          onClick={() => setShowPassword((s) => !s)}
+        >
+          {showPassword ? "visibility_off" : "visibility"}
+        </button>
+      </div>
+    </div>
+
+    {error && <p className="text-error text-label-sm">{error}</p>}
+
+    <div className="flex items-center">
+      <input
+        type="checkbox"
+        id="remember"
+        checked={remember}
+        onChange={(e) => setRemember(e.target.checked)}
+        className="w-5 h-5 rounded border-surface/30 text-primary bg-surface/10 cursor-pointer"
+      />
+
+      <label
+        htmlFor="remember"
+        className="ml-sm font-label-md text-label-md text-white/80 cursor-pointer"
       >
-        Register your pantry
-      </Link>
-    </p>
-  </footer>
-</form>
-    </AuthLayout>
+        Keep me logged in
+      </label>
+    </div>
+
+    <Button
+      type="submit"
+      className="w-full"
+      disabled={submitting}
+      icon={submitting ? undefined : "arrow_forward"}
+    >
+      {submitting ? "Logging in..." : "Log in"}
+    </Button>
+
+    <footer className="mt-xl text-center">
+      <p className="font-body-md text-white/70">
+        Don&apos;t have an account?{" "}
+        <Link
+          to="/register"
+          className="font-label-md text-label-md text-[#E8B44A] hover:underline ml-xs"
+        >
+          Register your pantry
+        </Link>
+      </p>
+    </footer>
+  </form>
+</AuthLayout>
   );
 }
