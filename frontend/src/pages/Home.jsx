@@ -204,17 +204,17 @@ export default function Home() {
 
       {/* Final CTA */}
       <section className="py-xl text-center px-lg reveal-on-scroll">
-        <div className="max-w-3xl mx-auto bg-[#FCE6DE] text-on-surface p-xl rounded-2xl relative overflow-hidden border border-outline-variant">
+        <div className="max-w-3xl mx-auto bg-primary-fixed text-on-primary-fixed p-xl rounded-2xl relative overflow-hidden border border-primary/20">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-          <h2 className="font-headline-lg mb-md">Ready to reduce your kitchen&apos;s footprint?</h2>
-          <p className="font-body-md mb-xl opacity-90">
+          <h2 className="font-headline-lg mb-md text-primary">Ready to reduce your kitchen&apos;s footprint?</h2>
+          <p className="font-body-md mb-xl text-on-primary-fixed opacity-90">
             Join thousands of Malaysian households in the journey toward zero waste. Start your digital pantry today.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-md">
             <Link to={isAuthenticated ? '/dashboard' : '/register'}>
               <Button
                 variant="primary"
-                className="rounded-[12px] bg-primary px-14 py-4 min-w-[220px] text-headline-md shadow-md"
+                className="rounded-[12px] px-14 py-4 min-w-[220px] text-headline-md shadow-md"
               >
                 {isAuthenticated ? 'Go to Dashboard' : 'Join NourishShare'}
               </Button>
@@ -222,7 +222,7 @@ export default function Home() {
             <Link to="/contact">
               <Button
                 variant="outline"
-                className="rounded-[12px] px-14 py-4 min-w-[220px] text-headline-md text-primary border-0 bg-[#F7D2C4] hover:bg-[#FCE6DE] transition-colors duration-200"
+                className="rounded-[12px] px-14 py-4 min-w-[220px] text-headline-md text-primary bg-white border border-primary hover:bg-surface transition-colors duration-200"
               >
                 Contact Sales for Organizations
               </Button>
