@@ -158,17 +158,30 @@ export default function About() {
             </div>
             <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent rounded-3xl pointer-events-none" />
           </div>
+
           <div>
-            <h2 className="font-headline-lg text-on-background mb-lg">Beyond the App</h2>
+            <h2 className="font-headline-lg text-on-background mb-lg">
+              Beyond the App
+            </h2>
+
             <div className="space-y-lg">
               {BEYOND.map((item, i) => (
-                <div key={item.title} className={`${item.accentBg} group flex gap-md rounded-3xl border border-outline-variant p-lg transition-colors hover:border-primary hover:bg-primary/5`}>
-                  <div className={`${item.accent} flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-300 group-hover:bg-primary group-hover:text-on-primary`}>
+                <div
+                  key={item.title}
+                  className="bg-primary-container/10 flex gap-md rounded-3xl border border-outline-variant p-lg"
+                >
+                  <div className="bg-primary-container text-on-primary-container flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold">
                     {i + 1}
                   </div>
+
                   <div>
-                    <h4 className="font-headline-md text-primary mb-xs transition-colors group-hover:text-secondary">{item.title}</h4>
-                    <p className="font-body-md text-on-surface-variant transition-colors group-hover:text-on-background">{item.desc}</p>
+                    <h4 className="font-headline-md text-primary mb-xs">
+                      {item.title}
+                    </h4>
+
+                    <p className="font-body-md text-on-surface-variant">
+                      {item.desc}
+                    </p>
                   </div>
                 </div>
               ))}
