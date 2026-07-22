@@ -96,25 +96,34 @@ export default function Register() {
       <form className="space-y-lg max-w-2xl" onSubmit={handleSubmit}>
 
         <div className="space-y-lg">
-          <Input label="Full Name" placeholder="Ahmad Zulkifli" value={form.fullName}
+          <Input label="Full Name" placeholder="Susmita Shrestha" value={form.fullName}
             onChange={(e) => update('fullName', e.target.value)} error={errors.fullName} required />
 
           <Input label="Phone Number" type="tel" placeholder="012-345 6789" value={form.phone}
             onChange={(e) => update('phone', e.target.value)} error={errors.phone}
             hint={!errors.phone ? 'Used for secure collection alerts.' : undefined} required />
 
-          <Input label="Email Address" type="email" placeholder="ahmad@email.com" value={form.email}
+          <Input label="Email Address" type="email" placeholder="example@email.com" value={form.email}
             onChange={(e) => update('email', e.target.value)} error={errors.email} required />
 
-          <Input label="Address" placeholder="12 Jalan Damansara, Kuala Lumpur" value={form.address}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-lg">
+            <Input label="Password" type="password" placeholder="••••••••" value={form.password}
+              onChange={(e) => update('password', e.target.value)} error={errors.password} required />
+            <Input label="Confirm Password" type="password" placeholder="••••••••" value={form.confirmPassword}
+              onChange={(e) => update('confirmPassword', e.target.value)} error={errors.confirmPassword} required />
+          </div>
+          <PasswordStrengthMeter value={form.password} />
+
+          <Input label="Address" placeholder="Gyaneshwor, Kathmandu" value={form.address}
             onChange={(e) => update('address', e.target.value)} error={errors.address} required />
 
-          <Input label="Age" type="number" placeholder="25" value={form.age}
+          <Input label="Age" type="number" placeholder="20" value={form.age}
             onChange={(e) => update('age', e.target.value)} error={errors.age} required />
 
           <Input label="Household Size" type="number" placeholder="4" value={form.householdSize}
             onChange={(e) => update('householdSize', e.target.value)} error={errors.householdSize} required />
         </div>
+
 
 
         <div className="space-y-xs">
@@ -159,13 +168,7 @@ export default function Register() {
           {errors.avatar && <p className="text-label-sm text-error">{errors.avatar}</p>}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-lg">
-          <Input label="Password" type="password" placeholder="••••••••" value={form.password}
-            onChange={(e) => update('password', e.target.value)} error={errors.password} required />
-          <Input label="Confirm Password" type="password" placeholder="••••••••" value={form.confirmPassword}
-            onChange={(e) => update('confirmPassword', e.target.value)} error={errors.confirmPassword} required />
-        </div>
-        <PasswordStrengthMeter value={form.password} />
+
 
         <div className="flex items-start gap-md">
           <input type="checkbox" id="tos" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
