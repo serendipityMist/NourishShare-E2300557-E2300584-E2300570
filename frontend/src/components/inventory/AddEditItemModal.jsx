@@ -451,11 +451,11 @@ export default function AddEditItemModal({
 
           {/* Description */}
           <div className="md:col-span-2">
-            <label className="font-label-md text-label-md text-on-surface-variant block mb-xs">
+            <label htmlFor="item-description" className="font-label-md text-label-md text-on-surface-variant block mb-xs">
               Description
             </label>
 
-            <textarea
+            <textarea  id="item-description"
               className="w-full bg-surface-container-low border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 px-md py-md text-body-md inner-stamped rounded-t-lg transition-all resize-none"
               placeholder="Add details about this food item..."
               rows={3}
