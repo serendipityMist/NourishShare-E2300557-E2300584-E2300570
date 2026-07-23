@@ -24,6 +24,8 @@ export default function Register() {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -107,10 +109,34 @@ export default function Register() {
             onChange={(e) => update('email', e.target.value)} error={errors.email} required />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-lg">
-            <Input label="Password" type="password" placeholder="••••••••" value={form.password}
-              onChange={(e) => update('password', e.target.value)} error={errors.password} required />
-            <Input label="Confirm Password" type="password" placeholder="••••••••" value={form.confirmPassword}
-              onChange={(e) => update('confirmPassword', e.target.value)} error={errors.confirmPassword} required />
+            <div className="relative">
+              <Input label="Password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={form.password}
+                onChange={(e) => update('password', e.target.value)} error={errors.password} className="pr-12" required />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-[38px] text-surface/70 hover:text-surface"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  {showPassword ? 'visibility_off' : 'visibility'}
+                </span>
+              </button>
+            </div>
+            <div className="relative">
+              <Input label="Confirm Password" type={showConfirmPassword ? 'text' : 'password'} placeholder="••••••••" value={form.confirmPassword}
+                onChange={(e) => update('confirmPassword', e.target.value)} error={errors.confirmPassword} className="pr-12" required />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="absolute right-3 top-[38px] text-surface/70 hover:text-surface"
+                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                </span>
+              </button>
+            </div>
           </div>
           <PasswordStrengthMeter value={form.password} />
 
