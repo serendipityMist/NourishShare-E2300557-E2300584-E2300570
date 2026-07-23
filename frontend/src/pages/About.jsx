@@ -78,11 +78,11 @@ export default function About() {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-lg border-t border-outline-variant pt-lg">
               <div className="bg-primary-container text-on-primary-container p-md rounded-lg flex flex-col gap-xs">
-                <span className="font-headline-lg font-black block">4,000+</span>
+                <span className="font-headline-lg font-bold block">4,000+</span>
                 <span className="font-label-md">Tonnes of edible food wasted daily</span>
               </div>
               <div className="bg-primary-container text-on-primary-container p-md rounded-lg flex flex-col gap-xs">
-                <span className="font-headline-lg font-black block">24%</span>
+                <span className="font-headline-lg font-bold block">24%</span>
                 <span className="font-label-md">Increase during festive seasons</span>
               </div>
             </div>
@@ -190,19 +190,37 @@ export default function About() {
         </section>
 
         {/* CTA */}
-        <section className="bg-secondary-fixed text-on-secondary-fixed p-xl rounded-xl text-center border border-secondary/20 my-xl relative overflow-hidden">
-          <div className="relative z-10">
-            <h2 className="font-headline-xl mb-md">Join the Movement</h2>
-            <p className="font-body-lg mb-xl max-w-xl mx-auto">
-              Be part of the solution. Start managing your pantry with purpose today and help us nourish Malaysia.
-            </p>
-            <div className="flex flex-col md:flex-row gap-md justify-center items-center">
-              <Link to="/register" className="bg-primary text-on-primary px-xl py-md rounded-full font-headline-md hover:scale-105 transition-transform">
-                Create Your Account
-              </Link>
-              <Link to="/contact" className="w-full sm:w-auto border border-black-300 text-orange-400 px-xl py-md rounded-full font-label-md text-lg hover:bg-orange-50 transition-colors text-center">
-                Contact 
-              </Link>
+        {/* CTA */}
+        <section className="py-xl px-lg my-xl">
+          <div className="max-w-3xl mx-auto bg-primary-fixed text-on-primary-fixed p-xl rounded-2xl relative overflow-hidden border border-primary/20">
+            {/* Decorative background */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+
+            <div className="relative z-10 text-center">
+              <h2 className="font-headline-lg mb-md text-primary">
+                Join the Movement
+              </h2>
+
+              <p className="font-body-md mb-xl text-on-primary-fixed opacity-90 max-w-2xl mx-auto">
+                Be part of the solution. Start managing your pantry with purpose today
+                and help us nourish Malaysia.
+              </p>
+
+              <div className="flex flex-col sm:flex-row justify-center gap-md">
+                <Link
+                  to={isAuthenticated ? "/dashboard" : "/register"}
+                  className="bg-primary text-on-primary rounded-[12px] px-14 py-4 min-w-[220px] font-headline-md shadow-md hover:scale-105 hover:shadow-lg transition-all duration-200 text-center"
+                >
+                  {isAuthenticated ? "Go to Dashboard" : "Create Your Account"}
+                </Link>
+
+                <Link
+                  to="/contact"
+                  className="bg-white text-primary border border-primary rounded-[12px] px-14 py-4 min-w-[220px] font-headline-md shadow-md hover:scale-105 hover:shadow-lg hover:bg-surface transition-all duration-200 text-center"
+                >
+                  Contact Us
+                </Link>
+              </div>
             </div>
           </div>
         </section>

@@ -170,7 +170,7 @@ export default function InventoryList() {
     } catch (error) {
       showToast(
         error.message ||
-          'Failed to save item',
+        'Failed to save item',
         'error'
       );
 
@@ -200,7 +200,7 @@ export default function InventoryList() {
     } catch (error) {
       showToast(
         error.message ||
-          'Failed to delete item',
+        'Failed to delete item',
         'error'
       );
     } finally {
@@ -211,22 +211,22 @@ export default function InventoryList() {
   // ==========================================
   // Mark Used
   // ==========================================
-  async function handleMarkUsed(
-    item
-  ) {
+  async function handleMarkUsed(item) {
     try {
-      await markAsUsed(
-        item._id
-      );
+      await markAsUsed(item._id);
 
       showToast(
         `${item.name} marked as used`,
         'success'
       );
+
+      // Refresh inventory from backend
+      await fetchItems();
+
     } catch (error) {
       showToast(
         error.message ||
-          'Failed to mark item as used',
+        'Failed to mark item as used',
         'error'
       );
     }
@@ -254,7 +254,7 @@ export default function InventoryList() {
     } catch (error) {
       showToast(
         error.message ||
-          'Failed to create donation',
+        'Failed to create donation',
         'error'
       );
     }
@@ -286,15 +286,14 @@ export default function InventoryList() {
                       location
                     )
                   }
-                  className={`px-md py-xs rounded-full font-label-md border transition-all ${
-                    filters.storageLocation ===
-                    location
+                  className={`px-md py-xs rounded-full font-label-md border transition-all ${filters.storageLocation ===
+                      location
                       ? 'bg-secondary-fixed text-on-secondary-fixed-variant border-secondary'
                       : 'bg-surface-container text-on-surface-variant border-outline-variant hover:border-primary'
-                  }`}
+                    }`}
                 >
                   {location ===
-                  'all'
+                    'all'
                     ? 'All Items'
                     : location}
                 </button>
@@ -331,8 +330,8 @@ export default function InventoryList() {
 
         {/* Empty */}
         {!loading &&
-        !error &&
-        filteredItems.length ===
+          !error &&
+          filteredItems.length ===
           0 ? (
           <EmptyState
             icon="inventory_2"
