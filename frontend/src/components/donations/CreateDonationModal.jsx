@@ -67,7 +67,7 @@ export default function CreateDonationModal({
         </>
       }
     >
-      <form id="donation-form" className="p-lg space-y-lg ledger-line" onSubmit={handleSubmit}>
+      <form id="donation-form" className="p-lg space-y-lg" onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-lg">
           <Input
             label="Pickup Location"
