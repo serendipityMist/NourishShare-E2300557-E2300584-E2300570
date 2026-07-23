@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import PublicLayout from '../components/layout/PublicLayout.jsx';
 import { useAuth } from '../hooks/useAuth';
+import howToWorkImg from '../assets/howtowork.jpg';
 
 export default function HowItWorks() {
   const { isAuthenticated } = useAuth();
@@ -81,8 +82,7 @@ export default function HowItWorks() {
             <div
               className="w-full aspect-[4/3] rounded-xl border border-outline-variant bg-cover bg-center shadow-md"
               style={{
-                backgroundImage:
-                  "url('https://images.unsplash.com/photo-1534278931824-2a5df74f3631?auto=format&fit=crop&w=1000&q=80')",
+                backgroundImage: `url(${howToWorkImg})`,
               }}
             />
           </div>
@@ -159,7 +159,7 @@ export default function HowItWorks() {
               </Link>
               <Link
                 to={donatePath}
-                className="bg-white border border-outline-variant text-primary px-xl py-lg rounded-full font-headline-md transition-all hover:bg-surface-container-low text-center"
+                className="w-full sm:w-auto border border-orange-300 text-orange-400 px-xl py-md rounded-full font-label-md text-lg hover:bg-orange-50 transition-colors text-center"
               >
                 View Community Map
               </Link>
