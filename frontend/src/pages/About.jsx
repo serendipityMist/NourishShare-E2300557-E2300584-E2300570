@@ -78,11 +78,11 @@ export default function About() {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-lg border-t border-outline-variant pt-lg">
               <div className="bg-primary-container text-on-primary-container p-md rounded-lg flex flex-col gap-xs">
-                <span className="font-headline-lg font-bold block">4,000+</span>
+                <span className="font-headline-lg font-black block">4,000+</span>
                 <span className="font-label-md">Tonnes of edible food wasted daily</span>
               </div>
               <div className="bg-primary-container text-on-primary-container p-md rounded-lg flex flex-col gap-xs">
-                <span className="font-headline-lg font-bold block">24%</span>
+                <span className="font-headline-lg font-black block">24%</span>
                 <span className="font-label-md">Increase during festive seasons</span>
               </div>
             </div>
