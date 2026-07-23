@@ -242,6 +242,15 @@ const addFoodItem = asyncHandler(async (req, res) => {
 
 
     // ==================================================
+    // POPULATE CATEGORY AND OWNER BEFORE RESPONDING
+    // ==================================================
+
+    const populatedFood = await Food.findById(food._id)
+        .populate("category")
+        .populate("owner");
+
+
+    // ==================================================
     // SEND RESPONSE
     // ==================================================
 
@@ -250,7 +259,7 @@ const addFoodItem = asyncHandler(async (req, res) => {
         new ApiResponse(
             201,
             {
-                food
+                food: populatedFood
             },
             "Food item created successfully"
         )
@@ -512,6 +521,15 @@ const editFoodItem = asyncHandler(async (req, res) => {
 
 
     // ==================================================
+    // POPULATE CATEGORY AND OWNER BEFORE RESPONDING
+    // ==================================================
+
+    const populatedFood = await Food.findById(food._id)
+        .populate("category")
+        .populate("owner");
+
+
+    // ==================================================
     // RESPONSE
     // ==================================================
 
@@ -522,7 +540,7 @@ const editFoodItem = asyncHandler(async (req, res) => {
             200,
 
             {
-                food
+                food: populatedFood
             },
 
             "Food item edited successfully"
@@ -738,6 +756,15 @@ const markFoodAsUsed = asyncHandler(async (req, res) => {
     await food.save();
 
 
+    // ==================================================
+    // POPULATE CATEGORY AND OWNER BEFORE RESPONDING
+    // ==================================================
+
+    const populatedFood = await Food.findById(food._id)
+        .populate("category")
+        .populate("owner");
+
+
     return res.status(200).json(
 
         new ApiResponse(
@@ -745,7 +772,7 @@ const markFoodAsUsed = asyncHandler(async (req, res) => {
             200,
 
             {
-                food
+                food: populatedFood
             },
 
             "Food item marked as used successfully"

@@ -33,7 +33,7 @@ const registerUser = asyncHandler(async (req, res) => {
         gender,
         occupation,
     ].some(
-        (f) => { f?.trim() === "" }
+        ((f) => f?.trim() === "")
     )
     ) {
         throw new ApiError(400, "Please enter all the required field");
@@ -64,10 +64,10 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(409, "User with the phone number or email already exists");
     }
 
-    const avatarLocalPath = req.files?.avatar[0]?.path;
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
 
     if (!avatarLocalPath) {
-        throw new ApiError(400, "Avatar tis required");
+        throw new ApiError(400, "Avatar is required");
     }
 
     const avatar = await uploadFileInCloudinary(avatarLocalPath);
@@ -262,11 +262,11 @@ const verifyLoginOTP = asyncHandler(async (req, res) => {
     }
 
     if (Date.now() > user.otpExpiry) {
-        throw new ApiError(401, "OTP is expired");
+        throw new ApiError(401, "OTP is expired or incorrect");
     }
 
     if (otp !== user.otp) {
-        throw new ApiError(401, "OTP is incorrect");
+        throw new ApiError(401, "OTP is incorrect or expired");
     }
 
 
@@ -415,44 +415,95 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
 
 const verifyOTP = asyncHandler(async (req, res) => {
-    try {
-        const { email, phone, otp } = req.body;
-        if (!(email || phone)) {
-            throw new ApiError(400, "Please enter email or phone number");
-        }
+    const { email, phone, otp } = req.body;
 
-        if (!otp) {
-            throw new ApiError(400, "OTP is required");
-        }
-
-        const user = await User.findOne({
-            $or: [{ email }, { phone }]
-        })
-
-        if (!user) {
-            throw new ApiError(404, "User not found.")
-        }
-        //checking for OTP 
-        if (Date.now() > user.otpExpiry) {
-            throw new ApiError(400, "OTP is expired");
-        }
-
-        if (otp != user.otp) {
-            throw new ApiError(400, "OTP is incorrect or OTP doesn't match");
-        }
-
-        user.otp = undefined;
-        user.isOtpVerified = true;
-        user.otpExpiry = undefined;
-        await user.save();
-
-        return res.status(200)
-            .json(new ApiResponse(200, {}, "OTP is verified"));
-
-    } catch (error) {
-        throw new ApiError(500, error?.message || "OTP verfification failed");
+    // Check email or phone
+    if (!email && !phone) {
+        throw new ApiError(
+            400,
+            "Please enter email or phone number"
+        );
     }
-})
+
+    // Check OTP
+    if (!otp) {
+        throw new ApiError(
+            400,
+            "OTP is required"
+        );
+    }
+
+    // Find user
+    const user = await User.findOne({
+        $or: [
+            ...(email ? [{ email }] : []),
+            ...(phone ? [{ phone }] : [])
+        ]
+    });
+
+    if (!user) {
+        throw new ApiError(
+            404,
+            "User not found."
+        );
+    }
+
+    // Check if registration OTP exists
+    if (!user.registrationOtp) {
+        throw new ApiError(
+            400,
+            "No OTP found. Please request a new OTP."
+        );
+    }
+
+    // Check OTP expiry
+    if (
+        !user.registrationOtpExpiry ||
+        Date.now() > new Date(user.registrationOtpExpiry).getTime()
+    ) {
+        throw new ApiError(
+            400,
+            "OTP is expired"
+        );
+    }
+
+    // Debugging
+    console.log("OTP entered by user:", otp);
+    console.log("OTP stored in database:", user.registrationOtp);
+
+    // Compare OTP
+    if (
+        String(otp).trim() !==
+        String(user.registrationOtp).trim()
+    ) {
+        throw new ApiError(
+            400,
+            "OTP is incorrect or OTP doesn't match"
+        );
+    }
+
+    // OTP verified
+    user.registrationOtp = undefined;
+    user.registrationOtpExpiry = undefined;
+
+    // Activate account
+    user.isAccountActive = true;
+
+    // If you still want this field
+    user.isOtpVerified = true;
+
+    await user.save({
+        validateBeforeSave: false
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {},
+            "OTP is verified and account is activated successfully"
+        )
+    );
+});
 
 const resetPassword = asyncHandler(async (req, res) => {
     try {
