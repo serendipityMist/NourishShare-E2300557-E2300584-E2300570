@@ -2,7 +2,7 @@ import ToastStack from '../ui/ToastStack.jsx';
 import AntigravityField from './AntigravityField.jsx';
 import logo from '../../assets/logoo.png';
 
-export default function AuthLayout({ children }) {
+export default function AuthLayout({ children, wide = false }) {
   return (
     <main
       className="relative min-h-screen overflow-hidden flex items-center justify-center px-margin-mobile py-xl"
@@ -11,7 +11,11 @@ export default function AuthLayout({ children }) {
       <AntigravityField logoSrc={logo} />
 
       <div className="relative z-10 w-full flex flex-col items-center pointer-events-none">
-        <div className="pointer-events-auto w-full max-w-md bg-surface/8 backdrop-blur-2xl border border-surface/15 rounded-3xl shadow-[0_24px_64px_rgba(0,0,0,0.45)] p-xl">
+        <div
+          className={`pointer-events-auto w-full ${
+            wide ? 'max-w-3xl' : 'max-w-md'
+          } bg-surface/8 backdrop-blur-2xl border border-surface/15 rounded-3xl shadow-[0_24px_64px_rgba(0,0,0,0.45)] p-lg sm:p-xl`}
+        >
           {children}
         </div>
       </div>
