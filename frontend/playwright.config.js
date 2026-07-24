@@ -10,7 +10,13 @@ export default defineConfig({
 
   retries: process.env.CI ? 2 : 0,
 
-  workers: process.env.CI ? 1 : undefined,
+  // Forced to 1 everywhere (not just CI): tests across chromium/firefox/
+  // webkit share one login account and hit the same dev server. Running
+  // them in parallel causes one browser's navigation/session to get
+  // starved out — e.g. page.goto() hanging indefinitely on
+  // domcontentloaded, as seen on firefox in donation-browsing.spec.js.
+  // Serial execution avoids that at the cost of slower total runtime.
+  workers: 1,
 
   reporter: 'html',
 
@@ -19,9 +25,9 @@ export default defineConfig({
 
     trace: 'on-first-retry',
 
-    screenshot: 'only-on-failure',
+    screenshot: 'on',
 
-    video: 'retain-on-failure',
+    video: 'on',
   },
 
   projects: [
