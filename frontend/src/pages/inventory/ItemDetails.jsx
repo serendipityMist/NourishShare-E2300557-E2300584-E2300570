@@ -126,7 +126,7 @@ export default function ItemDetails() {
 
       showToast(
         error.response?.data?.message ||
-          'Unable to load food details',
+        'Unable to load food details',
         'error'
       );
 
@@ -147,9 +147,15 @@ export default function ItemDetails() {
     try {
       setActionLoading(true);
 
+      console.log('markAsUsed called');
+
+
+
+
       const response =
         await foodService.markFoodAsUsed(item._id);
 
+      console.log('API returned:', response.data.data.food.status);
       console.log(
         'Mark As Used Response:',
         response.data
@@ -174,7 +180,7 @@ export default function ItemDetails() {
 
       showToast(
         error.response?.data?.message ||
-          'Unable to mark food as used',
+        'Unable to mark food as used',
         'error'
       );
 
@@ -246,7 +252,7 @@ export default function ItemDetails() {
 
       showToast(
         error.response?.data?.message ||
-          'Unable to update food item',
+        'Unable to update food item',
         'error'
       );
 
@@ -286,7 +292,7 @@ export default function ItemDetails() {
 
       showToast(
         error.response?.data?.message ||
-          'Unable to delete food item',
+        'Unable to delete food item',
         'error'
       );
 
@@ -344,7 +350,7 @@ export default function ItemDetails() {
 
       showToast(
         error.response?.data?.message ||
-          'Unable to create donation',
+        'Unable to create donation',
         'error'
       );
 
@@ -502,8 +508,8 @@ export default function ItemDetails() {
               {item.status === 'Used'
                 ? 'Used'
                 : item.status === 'Donated'
-                ? 'Donated'
-                : 'Pantry Essential'}
+                  ? 'Donated'
+                  : 'Pantry Essential'}
 
             </span>
 
@@ -661,8 +667,8 @@ export default function ItemDetails() {
                 {days < 0
                   ? `Expired ${Math.abs(days)}d ago`
                   : days === 0
-                  ? 'Expires today'
-                  : `${days} days left`}
+                    ? 'Expires today'
+                    : `${days} days left`}
 
               </Badge>
 
@@ -674,13 +680,12 @@ export default function ItemDetails() {
             <div className="h-3 w-full bg-surface-variant rounded-full overflow-hidden relative z-10">
 
               <div
-                className={`h-full rounded-full ${
-                  status === 'expired'
+                className={`h-full rounded-full ${status === 'expired'
                     ? 'bg-error'
                     : status === 'expiring'
-                    ? 'bg-secondary'
-                    : 'bg-primary'
-                }`}
+                      ? 'bg-secondary'
+                      : 'bg-primary'
+                  }`}
                 style={{
                   width: `${Math.max(
                     5,

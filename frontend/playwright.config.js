@@ -4,15 +4,32 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
 
+  // TODO: uncomment once tests/global-setup.js exists in this project
+  // and its login/delete endpoint placeholders have been fixed to match
+  // the real backend routes. Until then, this line breaks config loading
+  // entirely (MODULE_NOT_FOUND) because the file doesn't exist yet.
+  // globalSetup: './tests/global-setup.js',
+
   fullyParallel: false,
 
   forbidOnly: !!process.env.CI,
 
   retries: process.env.CI ? 2 : 0,
 
-  workers: process.env.CI ? 1 : undefined,
+  // Forced to 1 everywhere (not just CI): all three browser projects log
+  // into the SAME test account and hit the SAME pantry data. Running them
+  // in parallel causes race conditions (e.g. one browser creating/reloading
+  // items while another browser's test is mid-flow), which shows up as
+  // "element not found" on items that should exist. Serial across
+  // projects avoids that at the cost of slower total runtime.
+  workers: 1,
 
   reporter: 'html',
+
+  // Default per-test timeout. Bumped from the 30s default since the
+  // image-upload create/edit flows can legitimately take longer,
+  // especially before pantry cleanup has run.
+  timeout: 60000,
 
   use: {
     baseURL: 'http://localhost:5173',

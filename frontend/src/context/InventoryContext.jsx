@@ -17,11 +17,16 @@ export function InventoryProvider({ children }) {
     try {
       setLoading(true);
       setError('');
+       console.log("FETCHING INVENTORY");
 
+ 
       const response = await foodService.getMyFoodItems();
 
-      const foods = response.data?.data?.foods || [];
 
+  console.log(response.data);
+      const foods = response.data?.data?.foods || [];
+console.log("Foods from backend:", foods);
+console.log("Setting items:", foods.length);
       setItems(foods);
     } catch (error) {
       // Silently handle 401 (will be caught by axios interceptor for refresh)
@@ -60,140 +65,99 @@ export function InventoryProvider({ children }) {
   // ==========================================
   // Add Food Item
   // ==========================================
-  async function addItem(formData) {
-    try {
-      const response = await foodService.addFoodItem(formData);
+  // ==========================================
+// Add Food Item
+// ==========================================
+async function addItem(formData) {
+  try {
+    const response = await foodService.addFoodItem(formData);
 
-      const newFood =
-        response.data?.data?.food;
+    console.log("========== ADD FOOD RESPONSE ==========");
+    console.log(response.data);
 
-      if (newFood) {
-        setItems((prev) => [
-          newFood,
-          ...prev,
-        ]);
-      }
+    // Always refresh inventory from backend
+    await fetchItems();
 
-      return newFood;
-    } catch (error) {
-      console.error('Failed to add food:', error);
+    return response.data?.data?.food;
+  } catch (error) {
+    console.error("Failed to add food:", error);
 
-      throw new Error(
-        error.response?.data?.message ||
-        'Failed to add food item'
-      );
-    }
+    throw new Error(
+      error.response?.data?.message ||
+      "Failed to add food item"
+    );
   }
+}
 
   // ==========================================
-  // Update Food Item
-  // ==========================================
-  async function updateItem(id, formData) {
-    try {
-      const response =
-        await foodService.editFoodItem(
-          id,
-          formData
-        );
-
-      const updatedFood =
-        response.data?.data?.food;
-
-      if (updatedFood) {
-        setItems((prev) =>
-          prev.map((item) =>
-            item._id === id
-              ? updatedFood
-              : item
-          )
-        );
-      }
-
-      return updatedFood;
-    } catch (error) {
-      console.error(
-        'Failed to update food:',
-        error
-      );
-
-      throw new Error(
-        error.response?.data?.message ||
-        'Failed to update food item'
-      );
-    }
-  }
-
-  // ==========================================
-  // Delete Food Item
-  // ==========================================
-  async function deleteItem(id) {
-    try {
-      await foodService.deleteFoodItem(id);
-
-      setItems((prev) =>
-        prev.filter(
-          (item) => item._id !== id
-        )
-      );
-    } catch (error) {
-      console.error(
-        'Failed to delete food:',
-        error
-      );
-
-      throw new Error(
-        error.response?.data?.message ||
-        'Failed to delete food item'
-      );
-    }
-  }
-
-  // ==========================================
-  // Mark Food as Used
-  // ==========================================
- async function markAsUsed(id) {
+// Update Food Item
+// ==========================================
+async function updateItem(id, formData) {
   try {
     const response =
-      await foodService.markFoodAsUsed(id);
+      await foodService.editFoodItem(id, formData);
 
-    const updatedFood =
-      response.data?.data?.food;
+    console.log("========== EDIT FOOD RESPONSE ==========");
+    console.log(response.data);
 
-    console.log(
-      'Updated food from API:',
-      updatedFood
-    );
+    await fetchItems();
 
-    if (updatedFood) {
-      setItems((prevItems) => {
-        const updatedItems = prevItems.map(
-          (item) =>
-            item._id === id
-              ? {
-                  ...item,
-                  ...updatedFood,
-                  status: 'Used',
-                }
-              : item
-        );
-
-        console.log(
-          'Updated inventory items:',
-          updatedItems
-        );
-
-        return updatedItems;
-      });
-    }
+    return response.data?.data?.food;
   } catch (error) {
     console.error(
-      'Failed to mark food as used:',
+      "Failed to update food:",
       error
     );
 
     throw new Error(
       error.response?.data?.message ||
-        'Failed to mark food as used'
+      "Failed to update food item"
+    );
+  }
+}
+
+  // ==========================================
+// Delete Food Item
+// ==========================================
+async function deleteItem(id) {
+  try {
+    await foodService.deleteFoodItem(id);
+
+    await fetchItems();
+  } catch (error) {
+    console.error(
+      "Failed to delete food:",
+      error
+    );
+
+    throw new Error(
+      error.response?.data?.message ||
+      "Failed to delete food item"
+    );
+  }
+}
+
+ // ==========================================
+// Mark Food as Used
+// ==========================================
+async function markAsUsed(id) {
+  try {
+    const response =
+      await foodService.markFoodAsUsed(id);
+
+    console.log("========== MARK USED RESPONSE ==========");
+    console.log(response.data);
+
+    await fetchItems();
+  } catch (error) {
+    console.error(
+      "Failed to mark food as used:",
+      error
+    );
+
+    throw new Error(
+      error.response?.data?.message ||
+      "Failed to mark food as used"
     );
   }
 }

@@ -39,6 +39,7 @@ export default function InventoryList() {
     updateItem,
     deleteItem,
     markAsUsed,
+    fetchItems,
   } = useInventory();
 
   const {
@@ -143,24 +144,19 @@ export default function InventoryList() {
   // ==========================================
   // Save Food
   // ==========================================
-  async function handleSave(
-    formData
-  ) {
+  async function handleSave(formData) {
     try {
       if (editingItem) {
-        await updateItem(
-          editingItem._id,
-          formData
-        );
+        await updateItem(editingItem._id, formData);
+        await fetchItems();
 
         showToast(
           'Item updated successfully',
           'success'
         );
       } else {
-        await addItem(
-          formData
-        );
+        await addItem(formData);
+        await fetchItems();
 
         showToast(
           'Item added to your pantry',
@@ -169,8 +165,7 @@ export default function InventoryList() {
       }
     } catch (error) {
       showToast(
-        error.message ||
-        'Failed to save item',
+        error.message || 'Failed to save item',
         'error'
       );
 
@@ -287,9 +282,9 @@ export default function InventoryList() {
                     )
                   }
                   className={`px-md py-xs rounded-full font-label-md border transition-all ${filters.storageLocation ===
-                      location
-                      ? 'bg-secondary-fixed text-on-secondary-fixed-variant border-secondary'
-                      : 'bg-surface-container text-on-surface-variant border-outline-variant hover:border-primary'
+                    location
+                    ? 'bg-secondary-fixed text-on-secondary-fixed-variant border-secondary'
+                    : 'bg-surface-container text-on-surface-variant border-outline-variant hover:border-primary'
                     }`}
                 >
                   {location ===
@@ -382,7 +377,15 @@ export default function InventoryList() {
                       </th>
                     </tr>
                   </thead>
-
+                  {console.log("ACTIVE ITEMS:", activeItems.length)}
+                  {console.log("FILTERED ITEMS:", filteredItems.length)}
+                  {console.log(
+                    filteredItems.map(item => ({
+                      name: item.name,
+                      status: item.status,
+                      storage: item.storageLocation
+                    }))
+                  )}
                   <tbody className="divide-y divide-outline-variant/30">
                     {filteredItems.map(
                       (item) => (
