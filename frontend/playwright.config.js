@@ -16,12 +16,12 @@ export default defineConfig({
 
   retries: process.env.CI ? 2 : 0,
 
-  // Forced to 1 everywhere (not just CI): all three browser projects log
-  // into the SAME test account and hit the SAME pantry data. Running them
-  // in parallel causes race conditions (e.g. one browser creating/reloading
-  // items while another browser's test is mid-flow), which shows up as
-  // "element not found" on items that should exist. Serial across
-  // projects avoids that at the cost of slower total runtime.
+  // Forced to 1 everywhere (not just CI): tests across chromium/firefox/
+  // webkit share one login account and hit the same dev server. Running
+  // them in parallel causes one browser's navigation/session to get
+  // starved out — e.g. page.goto() hanging indefinitely on
+  // domcontentloaded, as seen on firefox in donation-browsing.spec.js.
+  // Serial execution avoids that at the cost of slower total runtime.
   workers: 1,
 
   reporter: 'html',
