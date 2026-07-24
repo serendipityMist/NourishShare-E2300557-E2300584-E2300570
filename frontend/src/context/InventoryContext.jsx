@@ -38,7 +38,7 @@ export function InventoryProvider({ children }) {
       } else {
         setError(
           error.response?.data?.message ||
-            'Failed to load food items'
+          'Failed to load food items'
         );
       }
     } finally {
@@ -80,7 +80,7 @@ export function InventoryProvider({ children }) {
 
       throw new Error(
         error.response?.data?.message ||
-          'Failed to add food item'
+        'Failed to add food item'
       );
     }
   }
@@ -118,7 +118,7 @@ export function InventoryProvider({ children }) {
 
       throw new Error(
         error.response?.data?.message ||
-          'Failed to update food item'
+        'Failed to update food item'
       );
     }
   }
@@ -143,7 +143,7 @@ export function InventoryProvider({ children }) {
 
       throw new Error(
         error.response?.data?.message ||
-          'Failed to delete food item'
+        'Failed to delete food item'
       );
     }
   }
@@ -151,36 +151,52 @@ export function InventoryProvider({ children }) {
   // ==========================================
   // Mark Food as Used
   // ==========================================
-  async function markAsUsed(id) {
-    try {
-      const response =
-        await foodService.markFoodAsUsed(id);
+ async function markAsUsed(id) {
+  try {
+    const response =
+      await foodService.markFoodAsUsed(id);
 
-      const updatedFood =
-        response.data?.data?.food;
+    const updatedFood =
+      response.data?.data?.food;
 
-      if (updatedFood) {
-        setItems((prev) =>
-          prev.map((item) =>
+    console.log(
+      'Updated food from API:',
+      updatedFood
+    );
+
+    if (updatedFood) {
+      setItems((prevItems) => {
+        const updatedItems = prevItems.map(
+          (item) =>
             item._id === id
-              ? updatedFood
+              ? {
+                  ...item,
+                  ...updatedFood,
+                  status: 'Used',
+                }
               : item
-          )
         );
-      }
-    } catch (error) {
-      console.error(
-        'Failed to mark food as used:',
-        error
-      );
 
-      throw new Error(
-        error.response?.data?.message ||
-          'Failed to mark food as used'
-      );
+        console.log(
+          'Updated inventory items:',
+          updatedItems
+        );
+
+        return updatedItems;
+      });
     }
-  }
+  } catch (error) {
+    console.error(
+      'Failed to mark food as used:',
+      error
+    );
 
+    throw new Error(
+      error.response?.data?.message ||
+        'Failed to mark food as used'
+    );
+  }
+}
   // ==========================================
   // Get Food By ID
   // ==========================================
