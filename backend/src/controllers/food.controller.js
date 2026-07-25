@@ -276,38 +276,6 @@ const editFoodItem = asyncHandler(async (req, res) => {
 
     const { id } = req.params;
 
-
-    console.log("\n========== EDIT FOOD REQUEST ==========");
-
-    console.log(
-        "Food ID:",
-        id
-    );
-
-    console.log(
-        "REQ BODY:",
-        req.body
-    );
-
-    console.log(
-        "REQ FILES:",
-        req.files
-    );
-
-    console.log(
-        "LOGGED IN USER:",
-        req.user?._id
-    );
-
-    console.log(
-        "=======================================\n"
-    );
-
-
-    // ==================================================
-    // GET DATA FROM REQUEST
-    // ==================================================
-
     const {
         name,
         number,
@@ -318,12 +286,6 @@ const editFoodItem = asyncHandler(async (req, res) => {
         storageLocation,
         category
     } = req.body;
-
-
-    // ==================================================
-    // CHECK REQUIRED FIELDS
-    // Description is OPTIONAL
-    // ==================================================
 
     const missingFields = [];
 
@@ -369,11 +331,6 @@ const editFoodItem = asyncHandler(async (req, res) => {
         missingFields.push("category");
     }
 
-
-    // ==================================================
-    // IF REQUIRED FIELD IS MISSING
-    // ==================================================
-
     if (missingFields.length > 0) {
 
         console.log(
@@ -388,13 +345,7 @@ const editFoodItem = asyncHandler(async (req, res) => {
 
     }
 
-
-    // ==================================================
-    // VALIDATE QUANTITY
-    // ==================================================
-
     const parsedNumber = Number(number);
-
 
     if (
         Number.isNaN(parsedNumber) ||
@@ -409,18 +360,11 @@ const editFoodItem = asyncHandler(async (req, res) => {
     }
 
 
-    // ==================================================
-    // FIND FOOD ITEM
-    // Only owner can edit their food
-    // ==================================================
-
-    const food = await Food.findOne({
-
-        _id: id,
-
-        owner: req.user._id
-
-    });
+    const food = await Food.findOne(
+        {
+            $and:[{_id:id},{owner:req.user?._id}]
+        }
+    );
 
 
     if (!food) {
@@ -432,11 +376,6 @@ const editFoodItem = asyncHandler(async (req, res) => {
 
     }
 
-
-    // ==================================================
-    // CHECK IF NEW IMAGE WAS UPLOADED
-    // ==================================================
-
     const foodImageLocalPath =
         req.files?.foodImage?.[0]?.path;
 
@@ -445,11 +384,6 @@ const editFoodItem = asyncHandler(async (req, res) => {
         "New Food Image Path:",
         foodImageLocalPath
     );
-
-
-    // ==================================================
-    // UPLOAD NEW IMAGE IF PROVIDED
-    // ==================================================
 
     if (foodImageLocalPath) {
 
@@ -467,18 +401,10 @@ const editFoodItem = asyncHandler(async (req, res) => {
             );
 
         }
-
-
-        food.foodImage =
-            foodImage.secure_url ||
-            foodImage.url;
-
+        food.foodImage = foodImage.url;
     }
 
 
-    // ==================================================
-    // UPDATE FOOD DATA
-    // ==================================================
 
     food.name =
         name.trim();
@@ -512,26 +438,13 @@ const editFoodItem = asyncHandler(async (req, res) => {
     food.category =
         category;
 
-
-    // ==================================================
-    // SAVE UPDATED FOOD
-    // ==================================================
-
     await food.save();
 
-
-    // ==================================================
-    // POPULATE CATEGORY AND OWNER BEFORE RESPONDING
-    // ==================================================
-
+   //populate food and category before sending data     
     const populatedFood = await Food.findById(food._id)
         .populate("category")
         .populate("owner");
 
-
-    // ==================================================
-    // RESPONSE
-    // ==================================================
 
     return res.status(200).json(
 
