@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiReponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js  ";
 import { uploadFileInCloudinary } from "../utils/cloudinary.js";
+import {v2 as cloudinary} from "cloudinary";
 import jwt from "jsonwebtoken";
 import { transporter } from "../utils/nodeMailer.js";
 
@@ -668,6 +669,11 @@ const updateProfile = asyncHandler(async (req, res) => {
 //uploadAvatar
 const updateAvatar = asyncHandler(async (req, res) => {
 
+    //storing the public id of the image in a variable
+    //currently this line will cause error because there is not public id in the avatar there is just url
+    const public_id = req.user?.avatar?.public_id;
+
+
     const avatarLocalPath = req.files?.avatar?.[0]?.path;
 
     if (!avatarLocalPath) {
@@ -679,6 +685,14 @@ const updateAvatar = asyncHandler(async (req, res) => {
     if (!avatar) {
         throw new ApiError(500, "Avatar upload failed");
     }
+
+    if (!public_id) {
+        throw new ApiError(400,"Couldn't get the public id of the image");
+    }
+
+    //currently this line will cause problem because the pubic id is avaiable
+    await cloudinary.uploader.destroy(public_id); 
+
 
     const user = await User.findByIdAndUpdate(
         req.user._id,
