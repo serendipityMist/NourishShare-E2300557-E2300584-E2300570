@@ -26,9 +26,15 @@ const userSchema = new mongoose.Schema({
         required:true,
         trim:true
     },
-    avatar:{ // we will use cloudinary to upload the image and then get the URL 
-        type:String,
-        required:true
+    avatar:{ 
+        url:{
+            type:String,
+            required:true
+        },
+        public_id:{
+            type:String,
+            required:true
+        }
     },
     age:{
         type:Number,
