@@ -92,7 +92,10 @@ const registerUser = asyncHandler(async (req, res) => {
         twoFAEnabled,
         // Use Case 1: user must verify OTP before account is active
         isAccountActive: false,
-        avatar: avatar.secure_url
+        avatar:{
+            url:avatar.url,
+            public_id: avatar.public_id
+        }
     })
 
 
@@ -795,7 +798,7 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 const updatePrivacySettings = asyncHandler(async (req, res) => {
     const { foodListingVisibility, twoFAEnabled } = req.body;
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user?._id);
 
     if (!user) {
         throw new ApiError(404, "User not found");
