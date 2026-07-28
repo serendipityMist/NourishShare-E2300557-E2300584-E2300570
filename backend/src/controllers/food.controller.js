@@ -788,6 +788,10 @@ const browseFoodItems = asyncHandler(async (req, res) => {
 });
 
 
+const getFoodSaved = asyncHandler(async(req,res)=>{
+    //for creating the visualization
+})
+
 // ======================================================
 // EXPORT CONTROLLERS
 // ======================================================
