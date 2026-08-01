@@ -1,221 +1,405 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
-import Button from '../components/ui/Button.jsx';
-import EmptyState from '../components/ui/EmptyState.jsx';
-import { mealPlanService } from '../services/mealPlanService';
-import { useNotifications } from '../hooks/useNotifications';
 
-const WEEK = [
-  { day: 'Mon', date: '23', meals: { b: 'Nasi Lemak', l: 'Chicken Adobo', d: null }, notes: 'Basmati Rice, Anchovies' },
-  { day: 'Tue', date: '24', meals: { b: 'Fruit Smoothie', l: null, d: 'Beef Rendang' }, notes: 'Banana, Spinach' },
-  { day: 'Wed', date: '25', meals: { b: 'Soft Boiled Eggs', l: 'Pesto Pasta', d: 'Grilled Sea Bass' }, notes: 'Eggs, Pesto' },
-  { day: 'Thu', date: '26', meals: { b: null, l: 'Quinoa Salad', d: 'Stir-fry Veggies' }, notes: 'Quinoa, Greens' },
-  { day: 'Fri', date: '27', meals: { b: 'Overnight Oats', l: 'Laksa', d: null }, notes: 'Oats, Coconut Milk' },
-  { day: 'Sat', date: '28', meals: { b: 'Pancakes', l: 'BBQ Skewers', d: 'Family Feast' }, notes: 'Flour, Veggies' },
-  { day: 'Sun', date: '29', meals: { b: 'Dim Sum', l: 'Roast Chicken', d: 'Leftovers' }, notes: 'Dumplings, Chicken' },
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const MEAL_SLOTS = ['Breakfast', 'Lunch', 'Dinner'];
+const INVENTORY_OPTIONS = ['Basmati Rice', 'Coconut Milk', 'Tofu Puffs', 'Sambal Paste', 'Anchovies'];
+const INITIAL_MEALS = [
+  {
+    id: 1,
+    day: 'Tuesday',
+    slot: 'Breakfast',
+    dish: 'Nasi Lemak Special',
+    items: ['Basmati Rice', 'Coconut Milk'],
+    reminder: true,
+    reminderTime: '60',
+  },
 ];
 
 export default function MealPlanner() {
-  const { showToast } = useNotifications();
-  const [mealPlans, setMealPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [mealPlans, setMealPlans] = useState(INITIAL_MEALS);
+  const [search, setSearch] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [currentEditingId, setCurrentEditingId] = useState(null);
+  const [currentSlot, setCurrentSlot] = useState('Breakfast');
+  const [mealDay, setMealDay] = useState('Monday');
+  const [dishName, setDishName] = useState('');
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [inventoryMenuOpen, setInventoryMenuOpen] = useState(false);
+  const [reminderActive, setReminderActive] = useState(false);
+  const [reminderTime, setReminderTime] = useState('60');
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastOpen, setToastOpen] = useState(false);
 
   useEffect(() => {
-    fetchMealPlans();
-  }, []);
+    if (!toastOpen) return;
+    const timer = window.setTimeout(() => setToastOpen(false), 4000);
+    return () => window.clearTimeout(timer);
+  }, [toastOpen]);
 
-  async function fetchMealPlans() {
-    try {
-      setLoading(true);
-      const res = await mealPlanService.getMyMealPlans();
-      setMealPlans(res.data?.data?.mealPlans || []);
-    } catch (error) {
-      if (error.response?.status !== 404) {
-        showToast(
-          error.response?.data?.message || 'Unable to load meal plans',
-          'error'
-        );
+  const filteredMeals = useMemo(() => {
+    if (!search.trim()) return mealPlans;
+    return mealPlans.filter((meal) => meal.dish.toLowerCase().includes(search.toLowerCase()));
+  }, [mealPlans, search]);
+
+  const mealCount = filteredMeals.length;
+  const completion = mealCount ? Math.min(100, Math.round((mealCount / 21) * 100)) : 0;
+
+  function openModal(day, slot, id = null) {
+    const existing = mealPlans.find((meal) => meal.id === id);
+    setCurrentEditingId(id);
+    setMealDay(day);
+    setCurrentSlot(slot);
+    setInventoryMenuOpen(false);
+
+    if (existing) {
+      setDishName(existing.dish);
+      setSelectedItems(existing.items);
+      setReminderActive(existing.reminder);
+      setReminderTime(existing.reminderTime);
+    } else {
+      setDishName('');
+      setSelectedItems([]);
+      setReminderActive(false);
+      setReminderTime('60');
+    }
+
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    setModalOpen(false);
+    setInventoryMenuOpen(false);
+  }
+
+  function saveMeal() {
+    if (!dishName.trim()) {
+      setToastMessage('Please enter a dish name.');
+      setToastOpen(true);
+      return;
+    }
+
+    const mealData = {
+      id: currentEditingId || Date.now(),
+      day: mealDay,
+      slot: currentSlot,
+      dish: dishName.trim(),
+      items: selectedItems,
+      reminder: reminderActive,
+      reminderTime,
+    };
+
+    setMealPlans((prev) => {
+      if (currentEditingId) {
+        return prev.map((meal) => (meal.id === currentEditingId ? mealData : meal));
       }
-      setMealPlans([]);
-    } finally {
-      setLoading(false);
-    }
+      return [...prev, mealData];
+    });
+
+    setToastMessage(`Saved ${mealData.dish}`);
+    setToastOpen(true);
+    closeModal();
   }
 
-  async function removeEntry(id) {
-    try {
-      await mealPlanService.deleteMealPlanEntry(id);
-      setMealPlans((prev) => prev.filter((entry) => entry._id !== id));
-      showToast('Meal plan entry removed');
-    } catch (error) {
-      showToast(
-        error.response?.data?.message || 'Unable to remove meal plan entry',
-        'error'
-      );
-    }
+  function deleteMeal() {
+    setMealPlans((prev) => prev.filter((meal) => meal.id !== currentEditingId));
+    setToastMessage('Meal deleted');
+    setToastOpen(true);
+    closeModal();
   }
 
-  const groupedPlans = useMemo(() => {
-    return mealPlans.reduce((acc, entry) => {
-      const day = entry.day || 'Monday';
-      if (!acc[day]) acc[day] = [];
-      acc[day].push(entry);
-      return acc;
-    }, {});
-  }, [mealPlans]);
+  function toggleReminder() {
+    setReminderActive((active) => !active);
+  }
 
-  const plannedCount = mealPlans.length;
-  const completion = mealPlans.length ? Math.min(100, Math.round((plannedCount / 21) * 100)) : 66;
+  function addInventoryItem(item) {
+    setSelectedItems((prev) => (prev.includes(item) ? prev : [...prev, item]));
+    setInventoryMenuOpen(false);
+  }
 
-  if (loading) {
-    return (
-      <AppLayout title="Meal Planner">
-        <div className="flex justify-center items-center h-96">
-          <p className="text-on-surface-variant">Loading meal plan...</p>
-        </div>
-      </AppLayout>
-    );
+  function removeInventoryItem(item) {
+    setSelectedItems((prev) => prev.filter((i) => i !== item));
   }
 
   return (
     <AppLayout title="Meal Planner">
-      <div className="mb-xl flex flex-col md:flex-row justify-between items-start md:items-end gap-lg">
-        <div className="space-y-sm">
-          <div className="flex items-center gap-md">
-            <button className="p-sm hover:bg-surface-container rounded-full transition-colors">
-              <span className="material-symbols-outlined">chevron_left</span>
-            </button>
-            <h2 className="font-headline-lg text-headline-lg">October 23 – 29, 2023</h2>
-            <button className="p-sm hover:bg-surface-container rounded-full transition-colors">
-              <span className="material-symbols-outlined">chevron_right</span>
-            </button>
-          </div>
-          <p className="text-on-surface-variant font-body-md italic">
-            A nourishing week for the soul and the kitchen.
-          </p>
-        </div>
-
-        <div className="w-full md:w-80 space-y-xs">
-          <div className="flex justify-between font-label-md">
-            <span>Weekly Completion</span>
-            <span className="text-secondary font-bold">{plannedCount}/21 Meals</span>
-          </div>
-          <div className="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
-            <div className="h-full bg-secondary-container" style={{ width: `${completion}%` }} />
-          </div>
-          <p className="text-[10px] uppercase tracking-widest text-outline">
-            Goal: Reduce food waste by 15%
-          </p>
-        </div>
-
-        <Link to="/inventory" className="inline-flex">
-          <Button className="bg-primary text-on-primary py-md px-xl rounded-full font-label-md shadow-sm active:scale-[0.98] transition-transform flex items-center gap-sm" icon="auto_fix_high">
-            New Meal Plan
-          </Button>
-        </Link>
-      </div>
-
-      <section className="grid grid-cols-1 md:grid-cols-7 gap-gutter">
-        {WEEK.map((item) => (
-          <div key={item.day} className="flex flex-col gap-md">
-            <div className="text-center py-md border-b-2 border-primary/20">
-              <span className="font-label-md uppercase tracking-tighter opacity-60">{item.day}</span>
-              <div className="font-headline-md text-primary">{item.date}</div>
+      <div className="mb-xl flex flex-col gap-lg">
+        <div className="flex flex-col gap-lg lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-sm">
+            <div className="flex flex-wrap items-center gap-md">
+              <button className="p-sm hover:bg-surface-container rounded-full transition-colors">
+                <span className="material-symbols-outlined">chevron_left</span>
+              </button>
+              <h2 className="font-headline-lg text-headline-lg">October 23 – 29, 2023</h2>
+              <button className="p-sm hover:bg-surface-container rounded-full transition-colors">
+                <span className="material-symbols-outlined">chevron_right</span>
+              </button>
             </div>
-            <div className="space-y-md">
-              <MealSlot title="Breakfast" item={item.meals.b} note={item.notes} />
-              <MealSlot title="Lunch" item={item.meals.l} note={item.notes} />
-              <MealSlot title="Dinner" item={item.meals.d} note={item.notes} isButton />
-            </div>
-          </div>
-        ))}
-      </section>
-
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-lg pt-xl">
-        <div className="lg:col-span-2 bg-white border border-outline-variant rounded-xl overflow-hidden shadow-sm flex flex-col md:flex-row">
-          <div className="md:w-1/3 h-48 md:h-auto overflow-hidden">
-            <img
-              className="w-full h-full object-cover"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJJcrdIN9A1N_15c6Eb7K5as5gkUv2S3ouembuoXsbjufbrrUpy8hrHsK1n013zZsZYEGaubp4EFm1kwaq4zeia9SsWw9emKUTW97EE5dL5j-5OCdSBRw6u34nwG8cbHKCfqQfTyyiAzNFhnU5yPs5H7xb9loD5x1Toc67kO77RqxE516vRM9RKTFenlQ8UAMbCJAiwtYLtgtekHltr7iCJEZ1zNcnCO8FatT3nk1_ZEt4vAukJNkSiQPY7RWo7N10spK8qU3eXA"
-              alt="Meal prep inspiration"
-            />
-          </div>
-          <div className="p-lg flex-1 flex flex-col justify-center space-y-md">
-            <div className="flex items-center gap-sm">
-              <span className="material-symbols-outlined text-secondary">tips_and_updates</span>
-              <h3 className="font-headline-md text-primary">Smart Prep Suggestions</h3>
-            </div>
-            <p className="text-on-surface-variant font-body-md">
-              Based on items expiring in 3 days, we suggest adding a <strong>Vegetable Stir-fry</strong> to Wednesday's dinner to use up your Bok Choy and Tofu.
+            <p className="text-on-surface-variant font-body-md italic">
+              A nourishing week for the soul and the kitchen.
             </p>
-            <div className="flex gap-md">
-              <button className="text-primary font-label-md border border-primary px-lg py-xs rounded-full hover:bg-primary/5 transition-colors">
-                Accept Suggestion
-              </button>
-              <button className="text-outline font-label-md hover:text-on-surface transition-colors">
-                See More
-              </button>
-            </div>
           </div>
-        </div>
 
-        <div className="bg-secondary-fixed text-on-secondary-fixed p-lg rounded-xl flex flex-col justify-between space-y-md relative overflow-hidden group">
-          <div className="absolute -right-8 -bottom-8 opacity-10 group-hover:scale-110 transition-transform duration-500">
-            <span className="material-symbols-outlined text-[120px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-              restaurant_menu
-            </span>
-          </div>
-          <div className="space-y-xs">
-            <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Editor's Choice</span>
-            <h3 className="font-headline-md">Fragrant Laksa Lemak</h3>
-            <p className="font-label-sm opacity-90">Uses 4 items from your current inventory.</p>
-          </div>
-          <div className="flex items-center gap-md pt-md">
-            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white">
-              <img
-                className="w-full h-full object-cover"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8YEJ_Fr2fcEzwxW_24k4JQJtCt7c1A3KbWrKaXr7b79Jy1dY9oDpKhuuLmoMYoJafMHkIsaBR6PKQIHxKlrlNzS10H7-OOM-iz_0I_ckSLK9q7pfRAGaYD4zvCDUmtHL5jnWIZBxOYwzG46JDoEdhYhP9Ssj5fnD0ZvvL0ZbnV7Kbn5I6pVUyJkPppu8seQEyenHyrPXXmicjMuqXopeTDCmB6b7uy-qJJoOPlG8i79vNvrPYMeL34rbD435J6qvHQbTtb0II1g"
-                alt="Chef portrait"
+          <div className="flex flex-col gap-sm w-full max-w-xl">
+            <div className="relative w-full max-w-md focus-within:ring-2 focus-within:ring-primary-container rounded-full overflow-hidden border border-outline-variant">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full py-2.5 pl-12 pr-4 bg-surface-container-low border-none focus:ring-0 text-sm"
+                placeholder="Search meals..."
+                type="text"
               />
             </div>
-            <span className="font-label-sm font-semibold italic">Recipe by Mak Cik Aminah</span>
+            <div className="flex flex-col gap-sm md:flex-row md:items-center md:justify-end md:gap-md">
+              <div className="hidden md:flex flex-col items-end">
+                <span className="text-sm font-bold text-primary">Selamat Pagi, Farah!</span>
+                <span className="text-xs text-on-surface-variant">{mealCount} meals planned this week</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <button className="material-symbols-outlined text-on-surface-variant hover:text-primary p-2 rounded-full">
+                  notifications
+                </button>
+                <button className="material-symbols-outlined text-on-surface-variant hover:text-primary p-2 rounded-full">
+                  account_circle
+                </button>
+                <button className="bg-primary text-on-primary px-6 py-2 rounded-full text-sm font-bold hover:opacity-90 active:scale-95 transition-all">
+                  Impact Report
+                </button>
+              </div>
+            </div>
           </div>
-          <button className="w-full bg-on-secondary-fixed text-secondary-fixed py-md rounded-lg font-label-md mt-auto active:opacity-80 transition-opacity">
-            Plan for Sunday
-          </button>
+        </div>
+      </div>
+
+      <section className="overflow-x-auto custom-scrollbar bg-surface-bright kraft-texture rounded-[32px] p-4">
+        <div className="flex h-full min-w-max gap-4" id="calendar-grid">
+          {DAYS.map((day, dayIndex) => (
+            <div key={day} className="flex flex-col w-64 bg-white/60 backdrop-blur-sm rounded-lg border border-outline-variant p-2 gap-6 flex-shrink-0">
+              <div className="px-2 py-1 border-b border-outline-variant/30 text-center">
+                <span className="text-xs font-bold text-primary/70 block uppercase tracking-widest">{day.substring(0, 3)}</span>
+                <span className="text-xl font-bold text-primary">{14 + dayIndex} Oct</span>
+              </div>
+              <div className="flex flex-col gap-6 flex-1">
+                {MEAL_SLOTS.map((slot) => {
+                  const meal = mealPlans.find((m) => m.day === day && m.slot === slot);
+                  return (
+                    <MealColumn
+                      key={slot}
+                      day={day}
+                      slot={slot}
+                      meal={meal}
+                      onOpen={() => openModal(day, slot, meal?.id ?? null)}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
+
+      <div className={`fixed inset-0 z-50 flex items-center justify-center modal-backdrop transition-opacity duration-300 ${modalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        <div className={`bg-white rounded-xl shadow-2xl max-w-4xl w-full flex overflow-hidden border border-outline-variant transform transition-transform duration-300 ${modalOpen ? 'scale-100' : 'scale-95'}`}>
+          <div className="w-1/3 relative bg-surface-container overflow-hidden hidden md:block">
+            <img
+              className="w-full h-full object-cover"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmAGqB_6nZUpNvhCA0-0xLD__eES7EuAwMWDQBwkw9LGC9M2Ge5kVJbFN6gS0zDdRIpeE3yTbLQxzOSmEW1BOWcQzkhURpwT2jjJGEqYf35n62aazo-Ojh3uuSq1FLbc7cDsXzexHwyWCpd19taOMObV89zhsJljW-cGCLKnpSSdjeBaq3WkfxdhPpriFnk0m-ZuZPJfdB5IoVa0qWu7SKHgloG5gh4Xb6ACIT2bzDB5d2riTzAtgF"
+              alt="Nasi Lemak"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent"></div>
+            <div className="absolute bottom-6 left-6 text-white pr-6">
+              <p className="text-xs uppercase tracking-widest opacity-80 mb-1">Pantry Select</p>
+              <h3 className="text-2xl font-bold leading-tight">Seasonal Inspiration</h3>
+            </div>
+          </div>
+
+          <div className="flex-1 p-8 flex flex-col gap-6 bg-surface-bright kraft-texture overflow-y-auto max-h-[90vh]">
+            <div className="flex justify-between items-start">
+              <div className="flex flex-col gap-1">
+                <span className="bg-secondary-fixed text-on-secondary-fixed-variant px-3 py-0.5 rounded-full text-xs font-bold self-start">{currentEditingId ? 'EDIT MEAL' : 'PLAN MEAL'}</span>
+                <h2 className="text-2xl font-bold text-on-surface">{currentEditingId ? 'Edit Meal' : 'Plan a Meal'}</h2>
+              </div>
+              <button className="material-symbols-outlined text-on-surface-variant hover:text-error transition-colors p-2" onClick={closeModal}>
+                close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Scheduled Day</label>
+                <select
+                  value={mealDay}
+                  onChange={(e) => setMealDay(e.target.value)}
+                  className="rounded-lg border-outline-variant bg-surface-container-low text-sm focus:ring-primary focus:border-primary w-full px-4 py-2.5"
+                >
+                  {DAYS.map((day) => (
+                    <option key={day} value={day}>{day}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Meal Slot</label>
+                <div className="flex rounded-lg overflow-hidden border border-outline-variant h-10">
+                  {MEAL_SLOTS.map((slot) => (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => setCurrentSlot(slot)}
+                      className={`flex-1 text-xs font-bold transition-colors ${currentSlot === slot ? 'bg-surface text-primary' : 'bg-transparent text-on-surface-variant'}`}
+                    >
+                      {slot}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Dish Name</label>
+              <input
+                value={dishName}
+                onChange={(e) => setDishName(e.target.value)}
+                className="rounded-lg border-outline-variant bg-surface-container-low text-sm focus:ring-primary focus:border-primary w-full px-4 py-2.5"
+                placeholder="Enter dish name..."
+                type="text"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Required Inventory Items</label>
+              <div className="p-4 bg-surface-container rounded-lg border border-outline-variant/50">
+                <div className="flex flex-wrap gap-2" id="inventoryTags">
+                  {selectedItems.map((item) => (
+                    <span key={item} className="flex items-center gap-1.5 bg-primary-fixed text-on-primary-fixed-variant px-3 py-1.5 rounded-sm text-xs font-bold">
+                      {item}
+                      <button type="button" className="material-symbols-outlined text-[14px]" onClick={() => removeInventoryItem(item)}>
+                        close
+                      </button>
+                    </span>
+                  ))}
+                  <button
+                    type="button"
+                    className="border border-dashed border-outline-variant text-on-surface-variant px-3 py-1.5 rounded text-xs font-bold hover:bg-white transition-colors"
+                    onClick={() => setInventoryMenuOpen((open) => !open)}
+                  >
+                    + Add Item
+                  </button>
+                </div>
+                {inventoryMenuOpen && (
+                  <div className="mt-3 p-2 bg-white rounded border border-outline-variant shadow-lg max-h-32 overflow-y-auto custom-scrollbar">
+                    {INVENTORY_OPTIONS.map((item) => (
+                      <div
+                        key={item}
+                        className="px-3 py-2 text-xs hover:bg-surface-container cursor-pointer"
+                        onClick={() => addInventoryItem(item)}
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-[10px] text-on-surface-variant/60 italic mt-3">
+                  Linked items will be automatically deducted from inventory once meal is marked 'Cooked'.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-surface-container-low p-4 rounded-lg flex items-center justify-between border border-outline-variant/30">
+              <div className="flex items-center gap-4">
+                <span className="material-symbols-outlined text-on-surface-variant p-2 bg-surface-variant rounded-full" id="reminderIcon">
+                  notifications
+                </span>
+                <div>
+                  <p className="text-xs font-bold">Meal Prep Reminder</p>
+                  <p className="text-[11px] text-on-surface-variant">Notify me before starting</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <select
+                  value={reminderTime}
+                  onChange={(e) => setReminderTime(e.target.value)}
+                  className="bg-transparent border-none focus:ring-0 text-xs pr-8"
+                >
+                  <option value="30">30 mins before</option>
+                  <option value="60">1 hour before</option>
+                  <option value="120">2 hours before</option>
+                </select>
+                <button
+                  type="button"
+                  className={`w-10 h-6 rounded-full relative flex items-center px-1 transition-colors ${reminderActive ? 'bg-primary' : 'bg-outline-variant'}`}
+                  onClick={toggleReminder}
+                >
+                  <span className={`w-4 h-4 bg-white rounded-full transition-transform ${reminderActive ? 'translate-x-4' : ''}`} />
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-auto flex items-center justify-between pt-6 border-t border-outline-variant">
+              <button
+                type="button"
+                className={`text-error text-xs font-bold flex items-center gap-1 hover:bg-error-container/20 px-3 py-2 rounded-lg transition-colors ${currentEditingId ? 'visible' : 'invisible'}`}
+                onClick={deleteMeal}
+              >
+                <span className="material-symbols-outlined text-sm">delete</span>
+                Delete Meal
+              </button>
+              <div className="flex items-center gap-4">
+                <button type="button" className="px-6 py-2.5 rounded-lg border border-outline text-on-surface-variant text-xs font-bold hover:bg-surface-variant transition-all" onClick={closeModal}>
+                  Cancel
+                </button>
+                <button type="button" className="px-8 py-2.5 rounded-lg bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition-all shadow-md" onClick={saveMeal}>
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {toastOpen && (
+        <div className="fixed bottom-6 right-6 bg-inverse-surface text-inverse-on-surface px-6 py-3 rounded-lg shadow-xl flex items-center gap-3 z-[100]">
+          <span className="material-symbols-outlined text-primary-fixed">timer</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </AppLayout>
   );
 }
 
-function MealSlot({ title, item, note, isButton }) {
-  if (isButton && !item) {
-    return (
-      <button className="w-full border-2 border-dashed border-outline-variant p-md rounded-lg flex flex-col items-center justify-center gap-xs hover:border-primary hover:bg-primary/5 transition-all text-outline-variant hover:text-primary min-h-[100px]">
-        <span className="material-symbols-outlined">add_circle</span>
-        <span className="text-[10px] font-bold uppercase">Add Dinner</span>
-      </button>
-    );
-  }
-
+function MealColumn({ day, slot, meal, onOpen }) {
+  const hasMeal = Boolean(meal);
   return (
-    <div className={`bg-surface-container-lowest border border-outline-variant p-md rounded-lg ${item ? 'pantry-tag hover:border-secondary transition-all cursor-pointer' : 'min-h-[100px]'}`}>
-      <div className="flex justify-between items-start mb-xs">
-        <span className="text-[10px] font-bold uppercase text-outline">{title}</span>
-        {item && <span className="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100 transition-opacity">edit</span>}
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between px-1">
+        <span className="text-[10px] font-bold text-on-surface-variant opacity-60 uppercase tracking-tighter">{slot}</span>
+        <button type="button" onClick={onOpen} className="material-symbols-outlined text-xs text-primary hover:bg-primary-container p-1 rounded-full active:scale-90 transition-all">
+          add
+        </button>
       </div>
-      {item ? (
-        <>
-          <p className="font-body-md font-semibold text-on-surface">{item}</p>
-          <div className="flex items-center gap-xs mt-sm text-primary">
-            <span className="material-symbols-outlined text-[16px]">inventory</span>
-            <span className="text-[10px] font-label-sm">{note}</span>
+      {hasMeal ? (
+        <button type="button" onClick={onOpen} className="meal-card-hover group bg-white border border-outline-variant rounded-xl p-4 cursor-pointer transition-all text-left">
+          <div className="flex flex-col gap-1">
+            {meal.id === 1 && (
+              <span className="bg-secondary-fixed text-on-secondary-fixed-variant text-[10px] font-bold px-2 py-0.5 rounded-full self-start mb-1 uppercase">
+                KRAFT FAVORITE
+              </span>
+            )}
+            <h4 className="text-sm text-on-surface leading-tight font-bold group-hover:text-primary">{meal.dish}</h4>
+            <div className="flex flex-wrap gap-1 mt-2">
+              {meal.items.map((item) => (
+                <span key={item} className="flex items-center gap-1 bg-surface-container-high text-[10px] font-medium px-2 py-1 rounded-sm border border-outline-variant/50">
+                  <span className="material-symbols-outlined text-[12px] text-primary">inventory_2</span>
+                  {item}
+                </span>
+              ))}
+            </div>
           </div>
-        </>
+        </button>
       ) : (
-        <p className="text-[10px] font-bold uppercase">Add {title}</p>
+        <button type="button" onClick={onOpen} className="border-2 border-dashed border-outline-variant/30 rounded-xl h-24 flex items-center justify-center group hover:border-primary/50 transition-colors cursor-pointer">
+          <span className="text-xs font-bold uppercase text-on-surface-variant/40 group-hover:text-primary/60">Plan a Meal</span>
+        </button>
       )}
     </div>
   );
