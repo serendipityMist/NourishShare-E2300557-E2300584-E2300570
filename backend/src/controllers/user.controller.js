@@ -1,11 +1,23 @@
 import { User } from "../models/user.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiReponse.js";
-import { asyncHandler } from "../utils/asyncHandler.js  ";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadFileInCloudinary } from "../utils/cloudinary.js";
-import {v2 as cloudinary} from "cloudinary";
+import { v2 as cloudinary } from "cloudinary";
 import jwt from "jsonwebtoken";
 import { transporter } from "../utils/nodeMailer.js";
+
+const authCookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+};
+
+const clearAuthCookies = (res) =>
+    res
+        .cookie("accessToken", "", { ...authCookieOptions, maxAge: 0 })
+        .cookie("refreshToken", "", { ...authCookieOptions, maxAge: 0 });
 
 //OTP Generator
 const generateOTP = () => {
@@ -189,15 +201,9 @@ const loginUser = asyncHandler(async (req, res) => {
         const loggedInUser = await User.findById(user._id).select("-password -refreshToken -otp -otpExpiry -isOtpVerified");
 
         //sending cookies
-        const options = {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax"
-        };
-
         return res.status(200)
-            .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", refreshToken, options)
+            .cookie("accessToken", accessToken, authCookieOptions)
+            .cookie("refreshToken", refreshToken, authCookieOptions)
             .json(new ApiResponse(200,
                 {
                     loggedInUser, accessToken, refreshToken
@@ -291,9 +297,8 @@ const verifyLoginOTP = asyncHandler(async (req, res) => {
     await user.save();
 
     return res.status(200)
-        .cookie("accessToken", accessToken, options)
-        .cookie("refreshToken", refreshToken, options)
-        .json(new ApiResponse(200, { loggedInUser, accessToken, refreshToken }, "User logged in successfully"));
+        .cookie("accessToken", accessToken, authCookieOptions)
+        .cookie("refreshToken", refreshToken, authCookieOptions)
 
 
 
@@ -312,58 +317,53 @@ const logoutUser = asyncHandler(async (req, res) => {
             new: true
         })
 
-    const options = {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax"
-    };
+    clearAuthCookies(res);
 
-    res.status(200)
-        .cookie("accessToken", "", options)
-        .cookie("refreshToken", "", options)
-        .json(new ApiResponse(200, {}, "User logged out successfully"));
+    res.status(200).json(new ApiResponse(200, {}, "User logged out successfully"));
 })
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-    const incomingToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    const incomingToken = req.body?.refreshToken || req.cookies?.refreshToken;
 
     if (!incomingToken) {
+        clearAuthCookies(res);
         throw new ApiError(401, "Invalid Refresh Token");
     }
 
     try {
-        const decodedToken = await jwt.verify(incomingToken, process.env.REFRESH_TOKEN_SECRECT);
+        const decodedToken = jwt.verify(incomingToken, process.env.REFRESH_TOKEN_SECRECT);
 
         const user = await User.findById(decodedToken._id);
 
         if (!user) {
+            clearAuthCookies(res);
             throw new ApiError(401, "Invalid Refresh Token");
         }
 
-        if (incomingToken != user.refreshToken) {
+        if (incomingToken !== user.refreshToken) {
+            clearAuthCookies(res);
             throw new ApiError(401, "Refresh Token is expired or used");
         }
 
-        const options = {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax"
-        };
         const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshToken(user._id);
 
         return res.status(200)
-            .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", newRefreshToken, options)
+            .cookie("accessToken", accessToken, authCookieOptions)
+            .cookie("refreshToken", newRefreshToken, authCookieOptions)
             .json(new ApiResponse(200, {
                 accessToken, refreshToken: newRefreshToken
             },
                 "Access Token Refreshed")
-            )
+            );
     } catch (error) {
-        throw new ApiError(400, error?.message || "Invalid Refresh Token");
+        clearAuthCookies(res);
+        if (error.name === "TokenExpiredError") {
+            throw new ApiError(401, "Refresh token expired. Please log in again");
+        }
+        throw new ApiError(401, error?.message || "Invalid Refresh Token");
     }
 
-})
+});
 
 
 //forgot Password
