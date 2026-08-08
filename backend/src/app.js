@@ -38,4 +38,19 @@ app.use("/api/v1/donation",donationRouter);
 app.use("/api/v1/notifications", notificationRouter);
 app.use("/api/v1/meal-plans", mealPlanRouter);
 
+app.use((err, req, res, next) => {
+    const statusCode = err.statusCode || 500;
+    const responseBody = {
+        success: false,
+        message: err.message || "Internal Server Error",
+        errors: err.errors || [],
+    };
+
+    if (process.env.NODE_ENV !== "production") {
+        responseBody.stack = err.stack;
+    }
+
+    res.status(statusCode).json(responseBody);
+});
+
 export {app};
