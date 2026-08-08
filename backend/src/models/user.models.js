@@ -26,14 +26,15 @@ const userSchema = new mongoose.Schema({
         required:true,
         trim:true
     },
-    avatar:{ 
-        url:{
-            type:String,
-            required:true
-        },
-        public_id:{
-            type:String,
-            required:true
+    avatar: {
+        type: String,
+        trim: true,
+        default: "",
+        set: (value) => {
+            if (!value) return "";
+            if (typeof value === "string") return value;
+            if (typeof value === "object") return value.secure_url || value.url || "";
+            return String(value);
         }
     },
     age:{
