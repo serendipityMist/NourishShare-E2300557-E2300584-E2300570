@@ -16,7 +16,7 @@
     const [submitting, setSubmitting] = useState(false);
     const [resending, setResending] = useState(false);
     const [resendMessage, setResendMessage] = useState('');
-    const [time, setTime] = useState(119);
+    const [time, setTime] = useState(599);
 
     useEffect(() => {
       if (time <= 0) return;
@@ -58,7 +58,7 @@
       try {
         await resendRegistrationOtp(identity);
         setResendMessage('A new verification code has been sent to your email.');
-        setTime(119);
+        setTime(599);
         setCode('');
       } catch (err) {
         setError(err?.response?.data?.message || 'Unable to resend verification code.');
