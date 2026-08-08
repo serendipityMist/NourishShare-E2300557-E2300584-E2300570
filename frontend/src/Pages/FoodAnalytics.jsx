@@ -381,138 +381,204 @@ export default function FoodAnalytics() {
 
   return (
     <AppLayout title="Food Analytics">
-      <section className="grid grid-cols-1 xl:grid-cols-[1.4fr_0.8fr] gap-lg mb-xl">
-        <div className="space-y-lg">
-          <div className="bg-white border border-outline-variant rounded-xl p-lg shadow-sm">
-            <div className="flex flex-col gap-md sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-label-md uppercase tracking-[0.24em] text-on-surface-variant">
-                  Impact summary
-                </p>
-                <h1 className="font-headline-xl text-headline-xl text-primary mt-sm">
-                  Your food-saving progress
-                </h1>
-                <p className="font-body-md text-on-surface-variant mt-xs max-w-2xl">
-                  Visualize the value of your household food use and donation activity.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-sm sm:grid-cols-3 w-full max-w-md">
-                <div className="bg-surface-container-low p-md rounded-xl text-center">
-                  <p className="font-label-sm text-on-surface-variant uppercase tracking-[0.16em]">
-                    Total saved
-                  </p>
-                  <p className="font-headline-md text-headline-md text-primary mt-xs">
-                    {totalSaved}
-                  </p>
-                </div>
-                <div className="bg-surface-container-low p-md rounded-xl text-center">
-                  <p className="font-label-sm text-on-surface-variant uppercase tracking-[0.16em]">
-                    Donations
-                  </p>
-                  <p className="font-headline-md text-headline-md text-primary mt-xs">
-                    {totalDonations}
-                  </p>
-                </div>
-                <div className="bg-surface-container-low p-md rounded-xl text-center">
-                  <p className="font-label-sm text-on-surface-variant uppercase tracking-[0.16em]">
-                    Used items
-                  </p>
-                  <p className="font-headline-md text-headline-md text-primary mt-xs">
-                    {totalUsed}
-                  </p>
-                </div>
-              </div>
+      <section className="space-y-xl">
+        <div className="bg-white border border-outline-variant rounded-[32px] p-lg shadow-sm">
+          <div className="flex flex-col gap-md lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="font-label-md uppercase tracking-[0.24em] text-on-surface-variant mb-sm">
+                Impact summary
+              </p>
+              <h1 className="font-headline-xl text-headline-xl text-primary">
+                Your food-saving progress
+              </h1>
+              <p className="font-body-lg text-on-surface-variant mt-sm">
+                Visualize the value of your household food use and donation activity with clear, easy-to-read metrics and charts.
+              </p>
             </div>
-          </div>
-
-          <div className="bg-white border border-outline-variant rounded-xl p-lg shadow-sm">
-            <div className="flex flex-col gap-sm sm:flex-row sm:items-end sm:justify-between mb-lg">
-              <div>
-                <h2 className="font-headline-lg text-headline-lg text-primary">
-                  Track and filter your impact
-                </h2>
-                <p className="font-body-md text-on-surface-variant mt-xs">
-                  Use the date and category controls to refine your report.
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-sm w-full lg:w-auto">
+              <div className="rounded-3xl bg-surface-container-low p-lg text-center border border-outline-variant">
+                <p className="font-label-sm uppercase tracking-[0.16em] text-on-surface-variant">
+                  Total saved
+                </p>
+                <p className="font-headline-lg text-headline-lg text-primary mt-sm">
+                  {totalSaved}
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-sm sm:grid-cols-3 w-full max-w-xl">
-                <Select
-                  label="Date range"
-                  value={dateRange}
-                  onChange={(event) => setDateRange(event.target.value)}
-                >
-                  {DATE_RANGES.map((range) => (
-                    <option key={range.value} value={range.value}>
-                      {range.label}
-                    </option>
-                  ))}
-                </Select>
-
-                <Select
-                  label="Category"
-                  value={categoryFilter}
-                  onChange={(event) => setCategoryFilter(event.target.value)}
-                >
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category === 'all' ? 'All categories' : category}
-                    </option>
-                  ))}
-                </Select>
+              <div className="rounded-3xl bg-surface-container-low p-lg text-center border border-outline-variant">
+                <p className="font-label-sm uppercase tracking-[0.16em] text-on-surface-variant">
+                  Donations
+                </p>
+                <p className="font-headline-lg text-headline-lg text-primary mt-sm">
+                  {totalDonations}
+                </p>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-lg">
-              <div className="bg-surface-container-low p-md rounded-xl">
-                <div className="h-72">
-                  <canvas ref={timeChartRef} />
-                </div>
-              </div>
-              <div className="bg-surface-container-low p-md rounded-xl">
-                <div className="h-72">
-                  <canvas ref={categoryChartRef} />
-                </div>
+              <div className="rounded-3xl bg-surface-container-low p-lg text-center border border-outline-variant">
+                <p className="font-label-sm uppercase tracking-[0.16em] text-on-surface-variant">
+                  Used items
+                </p>
+                <p className="font-headline-lg text-headline-lg text-primary mt-sm">
+                  {totalUsed}
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        <aside className="space-y-lg">
-          <div className="bg-white border border-outline-variant rounded-xl p-lg shadow-sm">
-            <h3 className="font-headline-md text-headline-md text-primary mb-sm">Community Reach</h3>
-            <p className="font-body-md text-on-surface-variant mb-md">
-              Your donations are part of the broader community impact. This summarizes your contributions and how many have been claimed.
-            </p>
-            <div className="space-y-sm">
-              <div className="rounded-xl bg-surface-container-low p-md">
-                <p className="font-label-sm text-on-surface-variant uppercase tracking-[0.16em]">
-                  Community pickups
-                </p>
-                <p className="font-headline-lg text-headline-lg text-primary mt-xs">
-                  {totalClaims}
-                </p>
+        <div className="grid gap-lg xl:grid-cols-[1.55fr_1fr]">
+          <div className="space-y-lg">
+            <div className="bg-white border border-outline-variant rounded-[32px] p-lg shadow-sm">
+              <div className="flex flex-col gap-md xl:flex-row xl:items-end xl:justify-between">
+                <div className="max-w-2xl">
+                  <h2 className="font-headline-lg text-headline-lg text-primary">
+                    Track and filter your impact
+                  </h2>
+                  <p className="font-body-md text-on-surface-variant mt-sm">
+                    Use the date and category controls to refine your report and uncover trends.
+                  </p>
+                </div>
+                <div className="grid gap-sm sm:grid-cols-2 xl:grid-cols-3 w-full xl:w-auto">
+                  <Select
+                    label="Date range"
+                    value={dateRange}
+                    onChange={(event) => setDateRange(event.target.value)}
+                    className="min-w-[180px]"
+                  >
+                    {DATE_RANGES.map((range) => (
+                      <option key={range.value} value={range.value}>
+                        {range.label}
+                      </option>
+                    ))}
+                  </Select>
+
+                  <Select
+                    label="Category"
+                    value={categoryFilter}
+                    onChange={(event) => setCategoryFilter(event.target.value)}
+                    className="min-w-[180px]"
+                  >
+                    {categories.map((category) => (
+                      <option key={category} value={category}>
+                        {category === 'all' ? 'All categories' : category}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
               </div>
-              <div className="rounded-xl bg-surface-container-low p-md">
-                <p className="font-label-sm text-on-surface-variant uppercase tracking-[0.16em]">
-                  Recent data
-                </p>
-                <p className="font-body-md text-on-surface-variant mt-xs">
-                  Viewing {dateRange === 'all' ? 'all activity' : DATE_RANGES.find((r) => r.value === dateRange)?.label.toLowerCase()}.
-                </p>
+
+              <div className="mt-xl grid gap-lg xl:grid-cols-2">
+                <div className="rounded-[28px] bg-surface-container-low p-lg border border-outline-variant overflow-hidden">
+                  <div className="mb-md flex items-center justify-between gap-sm">
+                    <div>
+                      <p className="font-label-sm uppercase tracking-[0.16em] text-on-surface-variant">
+                        Timeline
+                      </p>
+                      <p className="font-body-sm text-on-surface-variant mt-xs">
+                        Food saved over your selected period.
+                      </p>
+                    </div>
+                    <span className="font-label-sm text-primary">{dateRange === 'all' ? '6 months' : dateRange === 'monthly' ? '30 days' : '7 days'}</span>
+                  </div>
+                  <div className="h-[320px] min-h-[260px]">
+                    <canvas ref={timeChartRef} />
+                  </div>
+                </div>
+
+                <div className="rounded-[28px] bg-surface-container-low p-lg border border-outline-variant overflow-hidden">
+                  <div className="mb-md flex items-center justify-between gap-sm">
+                    <div>
+                      <p className="font-label-sm uppercase tracking-[0.16em] text-on-surface-variant">
+                        Category distribution
+                      </p>
+                      <p className="font-body-sm text-on-surface-variant mt-xs">
+                        See which food groups are being saved and donated most.
+                      </p>
+                    </div>
+                    <span className="font-label-sm text-primary">{categoryFilter === 'all' ? 'All categories' : categoryFilter}</span>
+                  </div>
+                  <div className="h-[320px] min-h-[260px]">
+                    <canvas ref={categoryChartRef} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border border-outline-variant rounded-[32px] p-lg shadow-sm">
+              <div className="flex items-center justify-between gap-sm mb-md">
+                <div>
+                  <h2 className="font-headline-lg text-headline-lg text-primary">
+                    Activity breakdown
+                  </h2>
+                  <p className="font-body-md text-on-surface-variant mt-sm">
+                    Quick facts that help you understand how your impact is growing.
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-sm sm:grid-cols-3">
+                <div className="rounded-3xl bg-surface-container-low p-md border border-outline-variant">
+                  <p className="font-label-sm uppercase tracking-[0.16em] text-on-surface-variant">
+                    Saved this period
+                  </p>
+                  <p className="font-headline-lg text-headline-lg text-primary mt-sm">
+                    {totalSaved}
+                  </p>
+                </div>
+                <div className="rounded-3xl bg-surface-container-low p-md border border-outline-variant">
+                  <p className="font-label-sm uppercase tracking-[0.16em] text-on-surface-variant">
+                    Donations made
+                  </p>
+                  <p className="font-headline-lg text-headline-lg text-primary mt-sm">
+                    {totalDonations}
+                  </p>
+                </div>
+                <div className="rounded-3xl bg-surface-container-low p-md border border-outline-variant">
+                  <p className="font-label-sm uppercase tracking-[0.16em] text-on-surface-variant">
+                    Claimed by community
+                  </p>
+                  <p className="font-headline-lg text-headline-lg text-primary mt-sm">
+                    {totalClaims}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-surface-container-low border border-outline-variant rounded-xl p-lg text-center">
-            <h3 className="font-headline-md text-headline-md text-primary mb-sm">Keep saving</h3>
-            <p className="font-body-md text-on-surface-variant mb-md">
-              Mark items as used or donate more food to grow your sustainability score and make your next report even more powerful.
-            </p>
-            <Link to="/inventory">
-              <Button icon="inventory_2">Go to pantry</Button>
-            </Link>
-          </div>
-        </aside>
+          <aside className="space-y-lg">
+            <div className="bg-white border border-outline-variant rounded-[32px] p-lg shadow-sm">
+              <h3 className="font-headline-md text-headline-md text-primary mb-sm">Community Reach</h3>
+              <p className="font-body-md text-on-surface-variant mb-md">
+                Your donations are part of the broader community impact. This summarizes your contributions and how many have been claimed.
+              </p>
+              <div className="space-y-sm">
+                <div className="rounded-3xl bg-surface-container-low p-md border border-outline-variant">
+                  <p className="font-label-sm uppercase tracking-[0.16em] text-on-surface-variant">
+                    Community pickups
+                  </p>
+                  <p className="font-headline-lg text-headline-lg text-primary mt-sm">
+                    {totalClaims}
+                  </p>
+                </div>
+                <div className="rounded-3xl bg-surface-container-low p-md border border-outline-variant">
+                  <p className="font-label-sm uppercase tracking-[0.16em] text-on-surface-variant">
+                    Recent data
+                  </p>
+                  <p className="font-body-md text-on-surface-variant mt-xs">
+                    Viewing {dateRange === 'all' ? 'all activity' : DATE_RANGES.find((r) => r.value === dateRange)?.label.toLowerCase()}.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-surface-container-low border border-outline-variant rounded-[32px] p-lg text-center">
+              <h3 className="font-headline-md text-headline-md text-primary mb-sm">Keep saving</h3>
+              <p className="font-body-md text-on-surface-variant mb-md">
+                Mark items as used or donate more food to grow your sustainability score and make your next report even more powerful.
+              </p>
+              <Link to="/inventory">
+                <Button icon="inventory_2">Go to pantry</Button>
+              </Link>
+            </div>
+          </aside>
+        </div>
       </section>
     </AppLayout>
   );
