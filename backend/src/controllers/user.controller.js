@@ -111,7 +111,7 @@ const registerUser = asyncHandler(async (req, res) => {
     // Use Case 1: send registration verification OTP and keep account inactive
     const otp = generateOTP();
     user.registrationOtp = otp;
-    user.registrationOtpExpiry = new Date(Date.now() + 2 * 60 * 1000);
+    user.registrationOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
     await user.save({ validateBeforeSave: false });
 
     try {
@@ -124,7 +124,7 @@ const registerUser = asyncHandler(async (req, res) => {
                 Welcome to NourishShare.
                 Your verification code is:
                 ${otp}
-                This code is valid for 2 minutes.
+                This code is valid for 10 minutes.
                 `,
             html: `
                 <p>Hello ${user.name}</p>
@@ -218,7 +218,7 @@ const loginUser = asyncHandler(async (req, res) => {
             A login attempt was made to your NourishShare account.
             To complete your sign-in, please use the One-Time Password (OTP) below:
             ${otp}
-            This OTP is valid for 2 minutes.
+            This OTP is valid for 5 minutes.
             If you did not attempt to log in, please ignore this email or consider changing your password immediately.
             Regards,
             NourishShare Team
@@ -228,7 +228,7 @@ const loginUser = asyncHandler(async (req, res) => {
                 <p>A login attempt was made to your <strong>NourishShare</strong> account.</p>
                 <p>To complete your sign-in, please use the following One-Time Password (OTP):</p>
                 <h1 style="letter-spacing: 5px;">${otp}</h1>
-                <p><strong>This OTP is valid for 2 minutes.</strong></p>
+                <p><strong>This OTP is valid for 10 minutes.</strong></p>
                 <p>If you did not attempt to log in, please ignore this email or secure your account by changing your password.</p>
                 <p>Regards,<br><strong>NourishShare Team</strong></p>
                 `
@@ -236,7 +236,7 @@ const loginUser = asyncHandler(async (req, res) => {
     console.log("Message sent: %s", info.messageId);
 
     user.otp = otp;
-    user.otpExpiry = Date.now() + 2 * 60 * 1000;
+    user.otpExpiry = Date.now() + 10 * 60 * 1000;
     await user.save();
 
     return res.status(200).json(new ApiResponse(200, {}, "Login Verification OTP Sent Successfully"));
@@ -276,8 +276,6 @@ const verifyLoginOTP = asyncHandler(async (req, res) => {
         throw new ApiError(401, "OTP is incorrect or expired");
     }
 
-
-
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken -otp -otpExpiry -isOtpVerified");
@@ -296,9 +294,11 @@ const verifyLoginOTP = asyncHandler(async (req, res) => {
     return res.status(200)
         .cookie("accessToken", accessToken, authCookieOptions)
         .cookie("refreshToken", refreshToken, authCookieOptions)
-
-
-
+        .json(new ApiResponse(200, {
+            loggedInUser,
+            accessToken,
+            refreshToken
+        }, "Login successful"));
 
 })
 
@@ -403,8 +403,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
         console.log("Message sent: %s", info.messageId);
 
         userExists.otp = otp;
-        userExists.otpExpiry = Date.now() + 2 * 60 * 1000;
-        await userExists.save();
+    userExists.otpExpiry = Date.now() + 10 * 60 * 1000;
 
         return res.status(200).json(new ApiResponse(200, {}, "OTP Send Successfully"));
 
@@ -833,7 +832,7 @@ const resendRegistrationOtp = asyncHandler(async (req, res) => {
 
     const otp = generateOTP();
     user.registrationOtp = otp;
-    user.registrationOtpExpiry = new Date(Date.now() + 2 * 60 * 1000);
+    user.registrationOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
     await user.save({ validateBeforeSave: false });
 
     try {
@@ -844,13 +843,13 @@ const resendRegistrationOtp = asyncHandler(async (req, res) => {
             text: `
                 Hello ${user.name},
                 Your new verification code is: ${otp}
-                This code is valid for 2 minutes.
+                This code is valid for 10 minutes.
             `,
             html: `
                 <p>Hello ${user.name},</p>
                 <p>Your new verification code is:</p>
                 <h1>${otp}</h1>
-                <p>This code is valid for 2 minutes.</p>
+                <p>This code is valid for 10 minutes.</p>
             `
         });
     } catch (err) {
