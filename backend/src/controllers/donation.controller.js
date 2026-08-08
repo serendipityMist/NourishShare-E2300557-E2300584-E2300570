@@ -86,6 +86,14 @@ const convertToDonation = asyncHandler(async (req, res) => {
 
     await food.save();
 
+    // Create a confirmation notification for the donor
+    await createNotification({
+        owner: req.user._id,
+        title: "Donation posted",
+        description: `Your donation "${food.name}" has been posted and is available for pickup at ${pickUpLocation}.`,
+        notificationType: "Donation"
+    });
+
 
     return res.status(201).json(
         new ApiResponse(
