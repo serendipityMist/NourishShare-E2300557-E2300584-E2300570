@@ -26,6 +26,7 @@ import ItemDetails from './pages/inventory/ItemDetails.jsx';
 
 import BrowseDonations from './pages/donations/BrowseDonations.jsx';
 import DonationDetails from './pages/donations/DonationDetails.jsx';
+import FoodAnalytics from './pages/FoodAnalytics.jsx';
 
 export default function App() {
   return (
@@ -92,6 +93,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <DonationDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analytics"
+        element={
+          <ProtectedRoute>
+            <FoodAnalytics />
           </ProtectedRoute>
         }
       />
