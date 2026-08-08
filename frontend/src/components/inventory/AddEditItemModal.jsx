@@ -63,6 +63,14 @@ export default function AddEditItemModal({
     loadCategories();
   }, [open]);
 
+  useEffect(() => {
+    if (!open || categoriesLoading || categories.length === 0) return;
+    setForm((prev) => ({
+      ...prev,
+      category: prev.category || categories[0]._id || '',
+    }));
+  }, [open, categoriesLoading, categories]);
+
   // ==========================================
   // Load existing item when editing
   // ==========================================
@@ -137,6 +145,7 @@ export default function AddEditItemModal({
         name: form.name,
         quantity: form.number,
         expiryDate: form.expiryDate,
+        category: form.category,
       })
     ) {
       setError(
