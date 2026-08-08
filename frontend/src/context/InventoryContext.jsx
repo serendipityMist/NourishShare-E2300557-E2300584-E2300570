@@ -161,6 +161,17 @@ async function markAsUsed(id) {
     );
   }
 }
+
+function markItemAsDonated(id) {
+  setItems((prevItems) =>
+    prevItems.map((item) =>
+      item._id === id || item.id === id
+        ? { ...item, status: 'Donated' }
+        : item
+    )
+  );
+}
+
   // ==========================================
   // Get Food By ID
   // ==========================================
@@ -195,6 +206,7 @@ async function markAsUsed(id) {
     updateItem,
     deleteItem,
     markAsUsed,
+    markItemAsDonated,
     getItemById,
     fetchItems,
   };
