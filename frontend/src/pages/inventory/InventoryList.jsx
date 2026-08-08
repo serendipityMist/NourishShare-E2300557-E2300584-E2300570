@@ -32,6 +32,7 @@ export default function InventoryList() {
   ] = useSearchParams();
 
   const {
+    items,
     activeItems,
     loading,
     error,
@@ -39,6 +40,7 @@ export default function InventoryList() {
     updateItem,
     deleteItem,
     markAsUsed,
+    markItemAsDonated,
     fetchItems,
   } = useInventory();
 
@@ -245,6 +247,8 @@ export default function InventoryList() {
         'success'
       );
 
+      markItemAsDonated(donatingItem._id);
+      await fetchItems();
       setDonatingItem(null);
     } catch (error) {
       showToast(
@@ -411,7 +415,7 @@ export default function InventoryList() {
                   Showing{' '}
                   {filteredItems.length}{' '}
                   of{' '}
-                  {activeItems.length}{' '}
+                  {items.length}{' '}
                   items in your pantry
                 </p>
               </div>
