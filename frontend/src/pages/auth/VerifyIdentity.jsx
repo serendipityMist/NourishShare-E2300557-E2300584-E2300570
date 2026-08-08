@@ -11,7 +11,7 @@ export default function VerifyIdentity() {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [time, setTime] = useState(119);
+  const [time, setTime] = useState(599);
 
   useEffect(() => {
     if (time <= 0) return;
