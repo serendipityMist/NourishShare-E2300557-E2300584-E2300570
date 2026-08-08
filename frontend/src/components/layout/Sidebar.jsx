@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
   { to: '/inventory', label: 'Inventory', icon: 'inventory_2' },
   { to: '/donations', label: 'Donations', icon: 'volunteer_activism' },
+  { to: '/analytics', label: 'Analytics', icon: 'query_stats' },
   { to: '/meal-planner', label: 'Meal Planner', icon: 'calendar_month' },
   { to: '/notifications', label: 'Notifications', icon: 'notifications' },
   { to: '/settings', label: 'Settings', icon: 'settings' },
