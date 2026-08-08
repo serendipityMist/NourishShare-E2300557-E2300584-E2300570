@@ -5,7 +5,7 @@ async function runExpiryPass(daysAhead = 3) {
     const now = new Date();
     const until = new Date();
     until.setDate(until.getDate() + daysAhead);
-
+    //not going in the main 
     const foods = await Food.find({
         expiryDate: { $gte: now, $lte: until },
         status: { $in: ["Available", "Upcoming"] }
