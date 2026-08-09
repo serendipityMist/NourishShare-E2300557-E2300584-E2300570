@@ -1,23 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import AppLayout from '../components/layout/AppLayout.jsx';
+import { useInventory } from '../hooks/useInventory.js';
+import { mealPlanService } from '../services/mealPlanService.js';
+import { recipeService } from '../services/recipeService.js';
+import { getExpiryStatus, daysUntil } from '../utils/dateUtils.js';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const MEAL_SLOTS = ['Breakfast', 'Lunch', 'Dinner'];
-const INVENTORY_OPTIONS = ['Basmati Rice', 'Coconut Milk', 'Tofu Puffs', 'Sambal Paste', 'Anchovies'];
-const INITIAL_MEALS = [
-  {
-    id: 1,
-    day: 'Tuesday',
-    slot: 'Breakfast',
-    dish: 'Nasi Lemak Special',
-    items: ['Basmati Rice', 'Coconut Milk'],
-    reminder: true,
-    reminderTime: '60',
-  },
-];
+const MEAL_SLOTS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
 export default function MealPlanner() {
-  const [mealPlans, setMealPlans] = useState(INITIAL_MEALS);
+  const { activeItems } = useInventory();
+  const [mealPlans, setMealPlans] = useState([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [currentEditingId, setCurrentEditingId] = useState(null);
@@ -30,6 +23,12 @@ export default function MealPlanner() {
   const [reminderTime, setReminderTime] = useState('60');
   const [toastMessage, setToastMessage] = useState('');
   const [toastOpen, setToastOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [recipeDetails, setRecipeDetails] = useState(null);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [recipeLoading, setRecipeLoading] = useState(false);
+  const [expiringItems, setExpiringItems] = useState([]);
 
   useEffect(() => {
     if (!toastOpen) return;
@@ -37,26 +36,122 @@ export default function MealPlanner() {
     return () => window.clearTimeout(timer);
   }, [toastOpen]);
 
+  useEffect(() => {
+    setExpiringItems(
+      activeItems
+        .filter((item) => getExpiryStatus(item.expiryDate) === 'expiring')
+        .sort((a, b) => daysUntil(a.expiryDate) - daysUntil(b.expiryDate))
+        .slice(0, 5)
+    );
+  }, [activeItems]);
+
+  useEffect(() => {
+    fetchMealPlans();
+  }, []);
+
+  async function fetchMealPlans() {
+    try {
+      const response = await mealPlanService.getMyMealPlans();
+      setMealPlans(response.data.data.mealPlans || []);
+    } catch (error) {
+      console.error('Failed to fetch meal plans', error);
+    }
+  }
+
+  async function fetchRecipeSuggestions() {
+    const selectedIngredientTokens = selectedItems
+      .flatMap((item) => item.name.split(/[,/()\s-]+/))
+      .map((token) => token.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (!selectedIngredientTokens.length) {
+      setSuggestions([]);
+      return;
+    }
+
+    const searchTerms = Array.from(new Set(selectedIngredientTokens));
+    setLoadingSuggestions(true);
+
+    try {
+      const responses = await Promise.all(
+        searchTerms.map((term) => recipeService.findByIngredient(term).catch(() => ({ data: { meals: [] } })))
+      );
+
+      const mealsByTerm = responses.map((response) => response.data.meals || []);
+      const intersection = mealsByTerm.reduce((common, meals) => {
+        if (!common) return meals;
+        return common.filter((meal) => meals.some((next) => next.idMeal === meal.idMeal));
+      }, null);
+
+      const matchedMeals = (intersection && intersection.length ? intersection : []) || [];
+      let finalMeals = matchedMeals;
+
+      if (!finalMeals.length) {
+        const mealMap = {};
+        mealsByTerm.flat().forEach((recipe) => {
+          if (!recipe.idMeal) return;
+          if (!mealMap[recipe.idMeal]) {
+            mealMap[recipe.idMeal] = { ...recipe, matchCount: 0 };
+          }
+          mealMap[recipe.idMeal].matchCount += 1;
+        });
+
+        finalMeals = Object.values(mealMap)
+          .sort((a, b) => b.matchCount - a.matchCount)
+          .slice(0, 8);
+      }
+
+      if (!finalMeals.length && dishName.trim()) {
+        const response = await recipeService.searchByName(dishName.trim());
+        finalMeals = response.data.meals || [];
+      }
+
+      setSuggestions(finalMeals.slice(0, 8));
+    } catch (error) {
+      console.error('Recipe suggestions failed', error);
+      setSuggestions([]);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  }
+
+  async function openRecipe(recipe) {
+    setSelectedRecipe(recipe);
+    setDishName(recipe.strMeal);
+
+    setRecipeLoading(true);
+    try {
+      const response = await recipeService.getById(recipe.idMeal);
+      const details = response.data.meals?.[0] || null;
+      setRecipeDetails(details);
+    } catch (error) {
+      console.error('Failed to load recipe details', error);
+      setRecipeDetails(null);
+    } finally {
+      setRecipeLoading(false);
+    }
+  }
+
   const filteredMeals = useMemo(() => {
     if (!search.trim()) return mealPlans;
-    return mealPlans.filter((meal) => meal.dish.toLowerCase().includes(search.toLowerCase()));
+    return mealPlans.filter((meal) => meal.mealName.toLowerCase().includes(search.toLowerCase()));
   }, [mealPlans, search]);
 
   const mealCount = filteredMeals.length;
-  const completion = mealCount ? Math.min(100, Math.round((mealCount / 21) * 100)) : 0;
+  const completion = mealCount ? Math.min(100, Math.round((mealCount / (DAYS.length * MEAL_SLOTS.length)) * 100)) : 0;
 
   function openModal(day, slot, id = null) {
-    const existing = mealPlans.find((meal) => meal.id === id);
+    const existing = mealPlans.find((meal) => meal._id === id);
     setCurrentEditingId(id);
     setMealDay(day);
     setCurrentSlot(slot);
     setInventoryMenuOpen(false);
 
     if (existing) {
-      setDishName(existing.dish);
-      setSelectedItems(existing.items);
-      setReminderActive(existing.reminder);
-      setReminderTime(existing.reminderTime);
+      setDishName(existing.mealName);
+      setSelectedItems(existing.food || []);
+      setReminderActive(false);
+      setReminderTime('60');
     } else {
       setDishName('');
       setSelectedItems([]);
@@ -72,40 +167,66 @@ export default function MealPlanner() {
     setInventoryMenuOpen(false);
   }
 
-  function saveMeal() {
+  async function saveMeal() {
     if (!dishName.trim()) {
       setToastMessage('Please enter a dish name.');
       setToastOpen(true);
       return;
     }
 
-    const mealData = {
-      id: currentEditingId || Date.now(),
+    const payload = {
+      foodIds: selectedItems.map((item) => item._id),
       day: mealDay,
-      slot: currentSlot,
-      dish: dishName.trim(),
-      items: selectedItems,
-      reminder: reminderActive,
-      reminderTime,
+      mealType: currentSlot,
+      mealName: dishName.trim(),
+      mealImage:
+        selectedRecipe?.strMealThumb ||
+        recipeDetails?.strMealThumb ||
+        suggestions?.[0]?.strMealThumb ||
+        '',
+      reminderActive,
+      reminderTime: Number(reminderTime)
     };
 
-    setMealPlans((prev) => {
-      if (currentEditingId) {
-        return prev.map((meal) => (meal.id === currentEditingId ? mealData : meal));
-      }
-      return [...prev, mealData];
-    });
+    try {
+      const response = await mealPlanService.addMealPlanEntry(payload);
+      const savedPlan = response.data.data.mealPlan;
 
-    setToastMessage(`Saved ${mealData.dish}`);
-    setToastOpen(true);
-    closeModal();
+      setMealPlans((prev) => {
+        if (currentEditingId) {
+          return prev.map((meal) => (meal._id === currentEditingId ? savedPlan : meal));
+        }
+        return [...prev, savedPlan];
+      });
+
+      setToastMessage(`Saved ${savedPlan.mealName}`);
+      setToastOpen(true);
+      closeModal();
+    } catch (error) {
+      console.error('Failed to save meal plan', error);
+      setToastMessage(error.response?.data?.message || 'Unable to save meal plan');
+      setToastOpen(true);
+    }
   }
 
-  function deleteMeal() {
-    setMealPlans((prev) => prev.filter((meal) => meal.id !== currentEditingId));
-    setToastMessage('Meal deleted');
-    setToastOpen(true);
-    closeModal();
+  async function deleteMeal() {
+    if (!currentEditingId) {
+      setToastMessage('Unable to remove meal');
+      setToastOpen(true);
+      return;
+    }
+
+    try {
+      await mealPlanService.deleteMealPlanEntry(currentEditingId);
+      setMealPlans((prev) => prev.filter((meal) => meal._id !== currentEditingId));
+      setToastMessage('Meal removed');
+      setToastOpen(true);
+      closeModal();
+    } catch (error) {
+      console.error('Failed to delete meal plan', error);
+      setToastMessage(error.response?.data?.message || 'Unable to delete meal plan');
+      setToastOpen(true);
+    }
   }
 
   function toggleReminder() {
@@ -113,12 +234,12 @@ export default function MealPlanner() {
   }
 
   function addInventoryItem(item) {
-    setSelectedItems((prev) => (prev.includes(item) ? prev : [...prev, item]));
+    setSelectedItems((prev) => (prev.some((selected) => selected._id === item._id) ? prev : [...prev, item]));
     setInventoryMenuOpen(false);
   }
 
-  function removeInventoryItem(item) {
-    setSelectedItems((prev) => prev.filter((i) => i !== item));
+  function removeInventoryItem(itemId) {
+    setSelectedItems((prev) => prev.filter((item) => item._id !== itemId));
   }
 
   return (
@@ -130,13 +251,13 @@ export default function MealPlanner() {
               <button className="p-sm hover:bg-surface-container rounded-full transition-colors">
                 <span className="material-symbols-outlined">chevron_left</span>
               </button>
-              <h2 className="font-headline-lg text-headline-lg">October 23 – 29, 2023</h2>
+              <h2 className="font-headline-lg text-headline-lg">Weekly Meal Planner</h2>
               <button className="p-sm hover:bg-surface-container rounded-full transition-colors">
                 <span className="material-symbols-outlined">chevron_right</span>
               </button>
             </div>
             <p className="text-on-surface-variant font-body-md italic">
-              A nourishing week for the soul and the kitchen.
+              Build your week using expiring ingredients and smart recipe suggestions.
             </p>
           </div>
 
@@ -151,21 +272,30 @@ export default function MealPlanner() {
                 type="text"
               />
             </div>
-            <div className="flex flex-col gap-sm md:flex-row md:items-center md:justify-end md:gap-md">
-              <div className="hidden md:flex flex-col items-end">
-                <span className="text-sm font-bold text-primary">Selamat Pagi, Farah!</span>
-                <span className="text-xs text-on-surface-variant">{mealCount} meals planned this week</span>
+            <div className="rounded-3xl bg-surface-container p-4 border border-outline-variant">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-on-surface-variant">Expiring Soon</p>
+                  <p className="font-bold">{expiringItems.length} items near expiry</p>
+                </div>
+                <div className="text-right text-[11px] text-on-surface-variant">
+                  Use these items first to reduce waste.
+                </div>
               </div>
-              <div className="flex items-center gap-4">
-                <button className="material-symbols-outlined text-on-surface-variant hover:text-primary p-2 rounded-full">
-                  notifications
-                </button>
-                <button className="material-symbols-outlined text-on-surface-variant hover:text-primary p-2 rounded-full">
-                  account_circle
-                </button>
-                <button className="bg-primary text-on-primary px-6 py-2 rounded-full text-sm font-bold hover:opacity-90 active:scale-95 transition-all">
-                  Impact Report
-                </button>
+              <div className="mt-4 grid grid-cols-1 gap-3">
+                {expiringItems.length > 0 ? (
+                  expiringItems.map((item) => (
+                    <div key={item._id} className="rounded-2xl bg-white/90 border border-outline-variant p-3 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="font-semibold text-sm">{item.name}</p>
+                        <p className="text-[11px] text-on-surface-variant">Expires in {daysUntil(item.expiryDate)} days</p>
+                      </div>
+                      <span className="rounded-full bg-warning-container px-3 py-1 text-[11px] text-warning">Expiring</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-on-surface-variant">No expiring items found. Add more inventory to get suggestions.</p>
+                )}
               </div>
             </div>
           </div>
@@ -182,14 +312,14 @@ export default function MealPlanner() {
               </div>
               <div className="flex flex-col gap-6 flex-1">
                 {MEAL_SLOTS.map((slot) => {
-                  const meal = mealPlans.find((m) => m.day === day && m.slot === slot);
+                  const meal = mealPlans.find((m) => m.day === day && m.mealType === slot);
                   return (
                     <MealColumn
                       key={slot}
                       day={day}
                       slot={slot}
                       meal={meal}
-                      onOpen={() => openModal(day, slot, meal?.id ?? null)}
+                      onOpen={() => openModal(day, slot, meal?._id ?? null)}
                     />
                   );
                 })}
@@ -204,13 +334,13 @@ export default function MealPlanner() {
           <div className="w-1/3 relative bg-surface-container overflow-hidden hidden md:block">
             <img
               className="w-full h-full object-cover"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmAGqB_6nZUpNvhCA0-0xLD__eES7EuAwMWDQBwkw9LGC9M2Ge5kVJbFN6gS0zDdRIpeE3yTbLQxzOSmEW1BOWcQzkhURpwT2jjJGEqYf35n62aazo-Ojh3uuSq1FLbc7cDsXzexHwyWCpd19taOMObV89zhsJljW-cGCLKnpSSdjeBaq3WkfxdhPpriFnk0m-ZuZPJfdB5IoVa0qWu7SKHgloG5gh4Xb6ACIT2bzDB5d2riTzAtgF"
-              alt="Nasi Lemak"
+              src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=1200&q=80"
+              alt="Meal planning"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent"></div>
             <div className="absolute bottom-6 left-6 text-white pr-6">
-              <p className="text-xs uppercase tracking-widest opacity-80 mb-1">Pantry Select</p>
-              <h3 className="text-2xl font-bold leading-tight">Seasonal Inspiration</h3>
+              <p className="text-xs uppercase tracking-widest opacity-80 mb-1">Pantry First</p>
+              <h3 className="text-2xl font-bold leading-tight">Plan using items ready to cook</h3>
             </div>
           </div>
 
@@ -271,9 +401,9 @@ export default function MealPlanner() {
               <div className="p-4 bg-surface-container rounded-lg border border-outline-variant/50">
                 <div className="flex flex-wrap gap-2" id="inventoryTags">
                   {selectedItems.map((item) => (
-                    <span key={item} className="flex items-center gap-1.5 bg-primary-fixed text-on-primary-fixed-variant px-3 py-1.5 rounded-sm text-xs font-bold">
-                      {item}
-                      <button type="button" className="material-symbols-outlined text-[14px]" onClick={() => removeInventoryItem(item)}>
+                    <span key={item._id} className="flex items-center gap-1.5 bg-primary-fixed text-on-primary-fixed-variant px-3 py-1.5 rounded-sm text-xs font-bold">
+                      {item.name}
+                      <button type="button" className="material-symbols-outlined text-[14px]" onClick={() => removeInventoryItem(item._id)}>
                         close
                       </button>
                     </span>
@@ -286,24 +416,114 @@ export default function MealPlanner() {
                     + Add Item
                   </button>
                 </div>
+
                 {inventoryMenuOpen && (
-                  <div className="mt-3 p-2 bg-white rounded border border-outline-variant shadow-lg max-h-32 overflow-y-auto custom-scrollbar">
-                    {INVENTORY_OPTIONS.map((item) => (
-                      <div
-                        key={item}
-                        className="px-3 py-2 text-xs hover:bg-surface-container cursor-pointer"
-                        onClick={() => addInventoryItem(item)}
-                      >
-                        {item}
-                      </div>
-                    ))}
+                  <div className="mt-3 p-2 bg-white rounded border border-outline-variant shadow-lg max-h-44 overflow-y-auto custom-scrollbar">
+                    {activeItems.length ? (
+                      activeItems.map((item) => (
+                        <div
+                          key={item._id}
+                          className="px-3 py-2 text-xs hover:bg-surface-container cursor-pointer"
+                          onClick={() => addInventoryItem(item)}
+                        >
+                          {item.name}
+                          <span className="text-[11px] text-on-surface-variant ml-2">({getExpiryStatus(item.expiryDate)})</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-xs text-on-surface-variant">No active inventory items available.</div>
+                    )}
                   </div>
                 )}
-                <p className="text-[10px] text-on-surface-variant/60 italic mt-3">
-                  Linked items will be automatically deducted from inventory once meal is marked 'Cooked'.
-                </p>
+
+                <div className="mt-3 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    className="px-4 py-2 rounded-lg bg-secondary text-on-secondary text-xs font-bold hover:bg-secondary-container transition-all"
+                    onClick={fetchRecipeSuggestions}
+                    disabled={!selectedItems.length}
+                  >
+                    {loadingSuggestions ? 'Finding recipes…' : 'Suggest recipes from selected ingredients'}
+                  </button>
+                  <p className="text-[10px] text-on-surface-variant/60 italic">
+                    Select expiring ingredients and get free recipe suggestions.
+                  </p>
+                </div>
               </div>
             </div>
+
+            {suggestions.length > 0 && (
+              <div className="rounded-3xl bg-surface-container p-4 border border-outline-variant">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-on-surface-variant">Recipe ideas</p>
+                    <p className="font-semibold">Suggested recipes</p>
+                  </div>
+                  <span className="text-[11px] text-on-surface-variant">Choose one to plan quickly.</span>
+                </div>
+                <div className="mt-4 grid gap-3">
+                  {suggestions.slice(0, 4).map((recipe) => (
+                    <button
+                      key={recipe.idMeal}
+                      type="button"
+                      className="w-full rounded-2xl border border-outline-variant p-3 text-left hover:bg-surface-container-high transition"
+                      onClick={() => openRecipe(recipe)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <img src={recipe.strMealThumb} alt={recipe.strMeal} className="w-14 h-14 rounded-2xl object-cover" />
+                        <div>
+                          <p className="font-semibold">{recipe.strMeal}</p>
+                          <p className="text-[11px] text-on-surface-variant">Ingredients matched from your inventory.</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedRecipe && (
+              <div className="rounded-3xl bg-surface-container p-4 border border-outline-variant">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-on-surface-variant">Recipe details</p>
+                    <p className="font-semibold">{selectedRecipe.strMeal}</p>
+                  </div>
+                  <span className="text-[11px] text-on-surface-variant">Steps and ingredients provided by TheMealDB.</span>
+                </div>
+                <div className="mt-4 grid gap-4">
+                  {recipeLoading ? (
+                    <div className="text-sm text-on-surface-variant">Loading recipe details…</div>
+                  ) : recipeDetails ? (
+                    <>
+                      <div className="grid gap-2">
+                        <p className="text-sm font-semibold">Instructions</p>
+                        <p className="text-sm leading-6 text-on-surface-variant whitespace-pre-line">{recipeDetails.strInstructions}</p>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <p className="text-sm font-semibold">Ingredients</p>
+                        <div className="flex flex-wrap gap-2">
+                          {Array.from({ length: 20 }, (_, index) => index + 1)
+                            .map((num) => ({
+                              ingredient: recipeDetails[`strIngredient${num}`],
+                              measure: recipeDetails[`strMeasure${num}`],
+                            }))
+                            .filter((item) => item.ingredient)
+                            .map((item, idx) => (
+                              <span key={idx} className="rounded-full bg-surface-container-high px-3 py-1 text-[11px] text-on-surface-variant">
+                                {item.ingredient.trim()} {item.measure?.trim()}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-on-surface-variant">Select a recipe to see instructions.</p>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="bg-surface-container-low p-4 rounded-lg flex items-center justify-between border border-outline-variant/30">
               <div className="flex items-center gap-4">
@@ -378,21 +598,54 @@ function MealColumn({ day, slot, meal, onOpen }) {
         </button>
       </div>
       {hasMeal ? (
-        <button type="button" onClick={onOpen} className="meal-card-hover group bg-white border border-outline-variant rounded-xl p-4 cursor-pointer transition-all text-left">
-          <div className="flex flex-col gap-1">
-            {meal.id === 1 && (
-              <span className="bg-secondary-fixed text-on-secondary-fixed-variant text-[10px] font-bold px-2 py-0.5 rounded-full self-start mb-1 uppercase">
-                KRAFT FAVORITE
-              </span>
+        <button type="button" onClick={onOpen} className="meal-card-hover group bg-white border border-outline-variant rounded-xl p-0 cursor-pointer transition-all text-left overflow-hidden">
+          <div className="relative h-28 overflow-hidden bg-surface-container-high">
+            {meal.mealImage ? (
+              <img
+                src={meal.mealImage}
+                alt={meal.mealName}
+                className="w-full h-full object-cover"
+              />
+            ) : meal.food?.[0]?.foodImage ? (
+              <img
+                src={meal.food[0].foodImage}
+                alt={meal.mealName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-on-surface-variant text-xs uppercase tracking-[0.2em]">No image available</div>
             )}
-            <h4 className="text-sm text-on-surface leading-tight font-bold group-hover:text-primary">{meal.dish}</h4>
-            <div className="flex flex-wrap gap-1 mt-2">
-              {meal.items.map((item) => (
-                <span key={item} className="flex items-center gap-1 bg-surface-container-high text-[10px] font-medium px-2 py-1 rounded-sm border border-outline-variant/50">
+            <div className="absolute inset-0 bg-gradient-to-t from-surface/80 via-surface/40 to-transparent" />
+            <div className="absolute bottom-3 left-3 right-3 p-2 bg-surface/80 rounded-2xl">
+              <h4 className="text-sm text-on-surface leading-tight font-bold group-hover:text-primary">{meal.mealName}</h4>
+            </div>
+          </div>
+          <div className="p-3 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {(meal.food || []).map((item) => (
+                <span key={item._id} className="flex items-center gap-1 bg-surface-container-high text-[10px] font-medium px-2 py-1 rounded-sm border border-outline-variant/50">
                   <span className="material-symbols-outlined text-[12px] text-primary">inventory_2</span>
-                  {item}
+                  {item.name}
                 </span>
               ))}
+            </div>
+            <div className="flex -space-x-2 overflow-hidden">
+              {(meal.food || [])
+                .filter((item) => item.foodImage)
+                .slice(0, 4)
+                .map((item) => (
+                  <img
+                    key={item._id}
+                    src={item.foodImage}
+                    alt={item.name}
+                    className="h-10 w-10 rounded-full border-2 border-white object-cover shadow-sm"
+                  />
+                ))}
+              {(meal.food || []).filter((item) => item.foodImage).length > 4 && (
+                <span className="flex h-10 min-w-[2.5rem] items-center justify-center rounded-full border-2 border-white bg-surface text-[11px] font-semibold text-on-surface-variant shadow-sm">
+                  +{(meal.food || []).filter((item) => item.foodImage).length - 4}
+                </span>
+              )}
             </div>
           </div>
         </button>
