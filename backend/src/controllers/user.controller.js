@@ -297,6 +297,11 @@ const verifyLoginOTP = asyncHandler(async (req, res) => {
     return res.status(200)
         .cookie("accessToken", accessToken, authCookieOptions)
         .cookie("refreshToken", refreshToken, authCookieOptions)
+        .json(new ApiResponse(200, {
+            loggedInUser,
+            accessToken,
+            refreshToken
+        }, "OTP verified successfully"))
 
 
 
