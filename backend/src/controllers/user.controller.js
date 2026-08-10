@@ -104,10 +104,8 @@ const registerUser = asyncHandler(async (req, res) => {
         twoFAEnabled,
         // Use Case 1: user must verify OTP before account is active
         isAccountActive: false,
-        avatar:{
-            url:avatar.url,
-            public_id: avatar.public_id
-        }
+        avatar:avatar.url,
+        
     })
 
 
@@ -674,7 +672,7 @@ const updateAvatar = asyncHandler(async (req, res) => {
 
     //storing the public id of the image in a variable
     //currently this line will cause error because there is not public id in the avatar there is just url
-    const public_id = req.user?.avatar?.public_id;
+    
 
 
     const avatarLocalPath = req.files?.avatar?.[0]?.path;
@@ -689,12 +687,9 @@ const updateAvatar = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Avatar upload failed");
     }
 
-    if (!public_id) {
-        throw new ApiError(400,"Couldn't get the public id of the image");
-    }
-
-    //currently this line will cause problem because the pubic id is avaiable
-    await cloudinary.uploader.destroy(public_id); 
+   
+    // //currently this line will cause problem because the pubic id is avaiable
+    // await cloudinary.uploader.destroy(public_id); 
 
 
     const user = await User.findByIdAndUpdate(
