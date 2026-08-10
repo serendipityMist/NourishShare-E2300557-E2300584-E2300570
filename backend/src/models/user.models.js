@@ -27,14 +27,8 @@ const userSchema = new mongoose.Schema({
         trim:true
     },
     avatar:{ 
-        url:{
             type:String,
             required:true
-        },
-        public_id:{
-            type:String,
-            required:true
-        }
     },
     age:{
         type:Number,
