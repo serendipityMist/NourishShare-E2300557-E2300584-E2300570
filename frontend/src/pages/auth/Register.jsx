@@ -116,7 +116,7 @@ export default function Register() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-md items-start">
             <Input
               label="Full Name"
-              placeholder="Susmita Shrestha"
+              placeholder="Enter your name"
               value={form.fullName}
               onChange={(e) => update('fullName', e.target.value)}
               error={errors.fullName}
