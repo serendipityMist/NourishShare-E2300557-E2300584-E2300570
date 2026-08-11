@@ -104,8 +104,7 @@ const registerUser = asyncHandler(async (req, res) => {
         twoFAEnabled,
         // Use Case 1: user must verify OTP before account is active
         isAccountActive: false,
-        avatar:avatar.url,
-        
+        avatar: avatar.url
     })
 
 
@@ -219,7 +218,7 @@ const loginUser = asyncHandler(async (req, res) => {
             A login attempt was made to your NourishShare account.
             To complete your sign-in, please use the One-Time Password (OTP) below:
             ${otp}
-            This OTP is valid for 2 minutes.
+            This OTP is valid for 5 minutes.
             If you did not attempt to log in, please ignore this email or consider changing your password immediately.
             Regards,
             NourishShare Team
@@ -277,8 +276,6 @@ const verifyLoginOTP = asyncHandler(async (req, res) => {
         throw new ApiError(401, "OTP is incorrect or expired");
     }
 
-
-
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken -otp -otpExpiry -isOtpVerified");
@@ -301,10 +298,7 @@ const verifyLoginOTP = asyncHandler(async (req, res) => {
             loggedInUser,
             accessToken,
             refreshToken
-        }, "OTP verified successfully"))
-
-
-
+        }, "Login successful"));
 
 })
 
@@ -410,7 +404,6 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
         userExists.otp = otp;
         userExists.otpExpiry = Date.now() + 2 * 60 * 1000;
-        await userExists.save();
 
         return res.status(200).json(new ApiResponse(200, {}, "OTP Send Successfully"));
 
@@ -701,7 +694,7 @@ const updateAvatar = asyncHandler(async (req, res) => {
         req.user._id,
         {
             $set: {
-                avatar: avatar.secure_url
+                avatar: avatar.secure_url || avatar.url
             }
         },
         {
