@@ -20,8 +20,21 @@ const mealPlanSchema = new mongoose.Schema({
     },
     mealType:{
         type: String,
-        enum:["Breakfast","Lunch","Dinner"],
+        enum:["Breakfast","Lunch","Dinner","Snack"],
         required:true
+    },
+    reminderActive: {
+        type: Boolean,
+        default: false
+    },
+    reminderTime: {
+        type: Number,
+        default: 60
+    },
+    mealImage: {
+        type: String,
+        trim: true,
+        default: ''
     },
     mealName:{
         type:String,

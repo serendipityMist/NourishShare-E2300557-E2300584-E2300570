@@ -101,8 +101,8 @@ export default function Register() {
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
           Join SavePlate
         </span>
-        <h2 className="font-headline-lg text-headline-lg text-surface mb-xs">Create Account</h2>
-        <p className="text-surface/70 font-body-md">Fill in your details to start your digital pantry journey.</p>
+        <h2 className="font-headline-lg text-headline-lg text-white mb-xs">Create Account</h2>
+        <p className="text-white/70 font-body-md">Fill in your details to start your digital pantry journey.</p>
       </div>
 
       <form className="space-y-lg w-full" onSubmit={handleSubmit} noValidate>
@@ -110,7 +110,7 @@ export default function Register() {
         <section className="space-y-md">
           <div className="flex items-center gap-sm">
             <span className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500/15 text-emerald-300 font-label-sm text-label-sm">1</span>
-            <h3 className="font-label-lg text-label-lg text-surface tracking-wide">Account Details</h3>
+            <h3 className="font-label-lg text-label-lg text-white tracking-wide">Account Details</h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-md items-start">
@@ -145,10 +145,10 @@ export default function Register() {
               required
             />
             <div className="space-y-xs">
-              <label className="font-label-md text-label-md text-surface block">Gender</label>
+              <label className="font-label-md text-label-md text-white block">Gender</label>
               <div className="relative">
                 <select
-                  className="appearance-none w-full rounded-xl py-sm px-md font-body-md text-surface bg-surface/5 border border-surface/20 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 outline-none transition-colors"
+                  className="appearance-none w-full rounded-xl py-sm px-md font-body-md text-white bg-surface/5 border border-surface/20 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 outline-none transition-colors"
                   value={form.gender}
                   onChange={(e) => update('gender', e.target.value)}
                 >
@@ -158,7 +158,7 @@ export default function Register() {
                   ))}
                 </select>
                 <svg
-                  className="pointer-events-none absolute right-md top-1/2 -translate-y-1/2 w-4 h-4 text-surface/50"
+                  className="pointer-events-none absolute right-md top-1/2 -translate-y-1/2 w-4 h-4 text-white/50"
                   viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"
                 >
                   <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -197,7 +197,7 @@ export default function Register() {
         <section className="space-y-md">
           <div className="flex items-center gap-sm">
             <span className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500/15 text-emerald-300 font-label-sm text-label-sm">2</span>
-            <h3 className="font-label-lg text-label-lg text-surface tracking-wide">Personal Information</h3>
+            <h3 className="font-label-lg text-label-lg text-white tracking-wide">Personal Information</h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-md items-start">
@@ -242,7 +242,7 @@ export default function Register() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
             <label className="flex items-center justify-between gap-md rounded-xl border border-surface/15 bg-surface/[0.02] px-md py-xs cursor-pointer hover:border-emerald-400/40 transition-colors">
-              <span className="font-label-md text-label-md text-surface/80">I am a Malaysian resident</span>
+              <span className="font-label-md text-label-md text-white/80">I am a Malaysian resident</span>
               <input
                 type="checkbox"
                 checked={form.malaysianResident}
@@ -251,7 +251,7 @@ export default function Register() {
               />
             </label>
             <label className="flex items-center justify-between gap-md rounded-xl border border-surface/15 bg-surface/[0.02] px-md py-xs cursor-pointer hover:border-emerald-400/40 transition-colors">
-              <span className="font-label-md text-label-md text-surface/80">Enable Two-Factor Authentication</span>
+              <span className="font-label-md text-label-md text-white/80">Enable Two-Factor Authentication</span>
               <input
                 type="checkbox"
                 checked={form.twoFAEnabled}
@@ -268,7 +268,7 @@ export default function Register() {
         <section className="space-y-sm">
           <div className="flex items-center gap-sm">
             <span className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500/15 text-emerald-300 font-label-sm text-label-sm">3</span>
-            <h3 className="font-label-lg text-label-lg text-surface tracking-wide">Profile Photo</h3>
+            <h3 className="font-label-lg text-label-lg text-white tracking-wide">Profile Photo</h3>
           </div>
 
           <div className="flex items-center gap-lg">
@@ -279,7 +279,7 @@ export default function Register() {
                 className="w-14 h-14 rounded-full object-cover border-2 border-emerald-400/50 shadow-sm"
               />
             ) : (
-              <div className="w-14 h-14 rounded-full bg-surface/5 border border-dashed border-surface/25 flex items-center justify-center text-surface/40 font-label-sm text-label-sm">
+              <div className="w-14 h-14 rounded-full bg-surface/5 border border-dashed border-surface/25 flex items-center justify-center text-white/40 font-label-sm text-label-sm">
                 Photo
               </div>
             )}
@@ -288,7 +288,7 @@ export default function Register() {
                 type="file"
                 accept="image/*"
                 onChange={handleAvatarChange}
-                className="font-body-md text-surface/70 file:mr-md file:py-sm file:px-md file:rounded-full file:border-0 file:bg-emerald-500/15 file:text-emerald-300 file:font-medium hover:file:bg-emerald-500/25 file:transition-colors w-full"
+                className="font-body-md text-white/70 file:mr-md file:py-sm file:px-md file:rounded-full file:border-0 file:bg-emerald-500/15 file:text-emerald-300 file:font-medium hover:file:bg-emerald-500/25 file:transition-colors w-full"
               />
               {errors.avatar && <p className="text-label-sm text-error mt-xs">{errors.avatar}</p>}
             </label>
@@ -304,7 +304,7 @@ export default function Register() {
             onChange={(e) => setAgreed(e.target.checked)}
             className="w-5 h-5 mt-1 rounded-md accent-emerald-500 focus:ring-2 focus:ring-emerald-400/30 cursor-pointer"
           />
-          <label htmlFor="tos" className="font-label-md text-label-md text-surface/70 cursor-pointer select-none">
+          <label htmlFor="tos" className="font-label-md text-label-md text-white/70 cursor-pointer select-none">
             I agree to the <span className="text-emerald-300 underline decoration-emerald-400/50 hover:text-emerald-200">Terms of Service</span> and{' '}
             <span className="text-emerald-300 underline decoration-emerald-400/50 hover:text-emerald-200">Privacy Policy</span>.
           </label>
@@ -323,7 +323,7 @@ export default function Register() {
           >
             {submitting ? 'Processing...' : 'Continue'}
           </Button>
-          <p className="text-center text-label-md font-label-md text-surface/70">
+          <p className="text-center text-label-md font-label-md text-white/70">
             Already have an account?{' '}
             <Link to="/login" className="text-emerald-300 font-bold hover:text-emerald-200 hover:underline">Sign In Here</Link>
           </p>

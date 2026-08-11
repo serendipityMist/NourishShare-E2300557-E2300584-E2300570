@@ -1,5 +1,6 @@
 import { MealPlan } from "../models/mealPlan.model.js";
 import { Food } from "../models/food.model.js";
+import { Notification } from "../models/notification.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiReponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -24,37 +25,55 @@ function getWeekStartDate(date = new Date()) {
 }
 
 const addMealPlanEntry = asyncHandler(async (req, res) => {
-    const { foodId, day, mealType, mealName, weekStartDate } = req.body;
+    const { foodIds, day, mealType, mealName, weekStartDate, reminderActive, reminderTime, mealImage } = req.body;
 
-    if (!foodId || !day || !mealType) {
-        throw new ApiError(400, "Food item, day, and meal type are required");
+    if (!day || !mealType) {
+        throw new ApiError(400, "Day and meal type are required");
     }
 
     if (!DAYS.includes(day)) {
         throw new ApiError(400, "Invalid day selected");
     }
 
-    const food = await Food.findOne({
-        _id: foodId,
-        owner: req.user._id
-    });
+    let foods = [];
+    if (Array.isArray(foodIds) && foodIds.length > 0) {
+        foods = await Food.find({
+            _id: { $in: foodIds },
+            owner: req.user._id
+        });
 
-    if (!food) {
-        throw new ApiError(404, "Food item not found");
-    }
+        if (foods.length !== foodIds.length) {
+            throw new ApiError(404, "One or more food items were not found");
+        }
 
-    if (food.status === "Used" || food.status === "Donated") {
-        throw new ApiError(400, "This food item cannot be planned for a meal");
+        const invalidFood = foods.find(
+            (item) => item.status === "Used" || item.status === "Donated"
+        );
+        if (invalidFood) {
+            throw new ApiError(400, "One or more selected food items cannot be planned for a meal");
+        }
     }
 
     const entry = await MealPlan.create({
         weekStartDate: weekStartDate ? new Date(weekStartDate) : getWeekStartDate(),
         day,
         mealType,
-        mealName: mealName || food.name,
+        reminderActive: Boolean(reminderActive),
+        reminderTime: Number(reminderTime) || 60,
+        mealImage: mealImage || '',
+        mealName: mealName || foods.map((item) => item.name).join(', ') || 'Custom meal',
         user: req.user._id,
-        food: [food._id]
+        food: foods.map((item) => item._id)
     });
+
+    await Promise.all(
+        foods.map(async (food) => {
+            if (food.status === "Available") {
+                food.status = "Reserved";
+                await food.save();
+            }
+        })
+    );
 
     const populatedEntry = await MealPlan.findById(entry._id)
         .populate({
@@ -62,11 +81,23 @@ const addMealPlanEntry = asyncHandler(async (req, res) => {
             populate: { path: "category" }
         });
 
+    if (entry.reminderActive) {
+        const title = `Meal reminder set for ${entry.mealType} on ${entry.day}`;
+        const description = `Your meal "${entry.mealName}" is scheduled for ${entry.day} (${entry.mealType}). You will be reminded ${entry.reminderTime} minutes before.`;
+
+        await Notification.create({
+            owner: req.user._id,
+            title,
+            description,
+            notificationType: "Meal"
+        });
+    }
+
     return res.status(201).json(
         new ApiResponse(
             201,
             { mealPlan: populatedEntry },
-            "Food item added to meal plan"
+            "Meal plan entry created successfully"
         )
     );
 });
