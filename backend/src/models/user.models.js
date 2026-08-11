@@ -26,22 +26,9 @@ const userSchema = new mongoose.Schema({
         required:true,
         trim:true
     },
-<<<<<<< HEAD
-    avatar: {
-        type: String,
-        trim: true,
-        default: "",
-        set: (value) => {
-            if (!value) return "";
-            if (typeof value === "string") return value;
-            if (typeof value === "object") return value.secure_url || value.url || "";
-            return String(value);
-        }
-=======
     avatar:{ 
             type:String,
             required:true
->>>>>>> 18d1975bd769e476fb32b5dfdb5cc23a2483f830
     },
     age:{
         type:Number,

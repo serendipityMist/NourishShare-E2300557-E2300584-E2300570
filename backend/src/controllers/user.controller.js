@@ -104,12 +104,7 @@ const registerUser = asyncHandler(async (req, res) => {
         twoFAEnabled,
         // Use Case 1: user must verify OTP before account is active
         isAccountActive: false,
-<<<<<<< HEAD
-        avatar: avatar.secure_url || avatar.url
-=======
-        avatar:avatar.url,
-        
->>>>>>> 18d1975bd769e476fb32b5dfdb5cc23a2483f830
+        avatar: avatar.url
     })
 
 
@@ -303,14 +298,7 @@ const verifyLoginOTP = asyncHandler(async (req, res) => {
             loggedInUser,
             accessToken,
             refreshToken
-<<<<<<< HEAD
         }, "Login successful"));
-=======
-        }, "OTP verified successfully"))
-
-
-
->>>>>>> 18d1975bd769e476fb32b5dfdb5cc23a2483f830
 
 })
 
@@ -682,12 +670,9 @@ const updateAvatar = asyncHandler(async (req, res) => {
 
     //storing the public id of the image in a variable
     //currently this line will cause error because there is not public id in the avatar there is just url
-<<<<<<< HEAD
-=======
     
 
 
->>>>>>> 18d1975bd769e476fb32b5dfdb5cc23a2483f830
     const avatarLocalPath = req.files?.avatar?.[0]?.path;
 
     if (!avatarLocalPath) {
@@ -700,14 +685,11 @@ const updateAvatar = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Avatar upload failed");
     }
 
-<<<<<<< HEAD
-=======
    
     // //currently this line will cause problem because the pubic id is avaiable
     // await cloudinary.uploader.destroy(public_id); 
 
 
->>>>>>> 18d1975bd769e476fb32b5dfdb5cc23a2483f830
     const user = await User.findByIdAndUpdate(
         req.user._id,
         {
