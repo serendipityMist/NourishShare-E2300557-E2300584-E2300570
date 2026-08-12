@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import AppLayout from "../../components/layout/AppLayout";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
@@ -52,7 +52,8 @@ export default function Settings() {
     age: user?.age || "",
   });
 
-  const [avatar, setAvatar] = useState(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef(null);
 
   // ======================
   // Password
@@ -89,24 +90,31 @@ export default function Settings() {
   }
 
   // ======================
-  // Upload Avatar
+  // Upload Avatar — clicking the button opens the picker directly,
+  // and selecting a file uploads it immediately (no separate "Choose File" step)
   // ======================
 
-  async function uploadImage() {
-    if (!avatar) {
-      return showToast("Please choose an image", "error");
-    }
+  function openAvatarPicker() {
+    avatarInputRef.current?.click();
+  }
+
+  async function handleAvatarFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     try {
-      await updateAvatar(avatar);
-
+      setAvatarUploading(true);
+      await updateAvatar(file);
       showToast("Avatar updated successfully");
-      setAvatar(null);
     } catch (err) {
       showToast(
         err.response?.data?.message || "Avatar upload failed",
         "error"
       );
+    } finally {
+      setAvatarUploading(false);
+      // reset so choosing the same file again still fires onChange
+      e.target.value = "";
     }
   }
 
@@ -246,16 +254,19 @@ export default function Settings() {
                 <div className="flex flex-col gap-sm">
 
                   <input
+                    ref={avatarInputRef}
                     type="file"
                     accept="image/*"
-                    onChange={(e)=>setAvatar(e.target.files[0])}
+                    onChange={handleAvatarFileChange}
+                    className="sr-only"
                   />
 
                   <Button
-                    onClick={uploadImage}
+                    onClick={openAvatarPicker}
                     icon="upload"
+                    disabled={avatarUploading}
                   >
-                    Upload Avatar
+                    {avatarUploading ? "Uploading..." : "Upload Avatar"}
                   </Button>
 
                 </div>
@@ -278,6 +289,7 @@ export default function Settings() {
                       name:e.target.value
                     })
                   }
+                  variant="dark"
                 />
 
                 <Input
@@ -289,6 +301,7 @@ export default function Settings() {
                       email:e.target.value
                     })
                   }
+                  variant="dark"
                 />
 
                 <Input
@@ -300,6 +313,7 @@ export default function Settings() {
                       phone:e.target.value
                     })
                   }
+                  variant="dark"
                 />
 
                 <Input
@@ -311,6 +325,7 @@ export default function Settings() {
                       address:e.target.value
                     })
                   }
+                  variant="dark"
                 />
 
                 <Input
@@ -322,6 +337,7 @@ export default function Settings() {
                       occupation:e.target.value
                     })
                   }
+                  variant="dark"
                 />
 
                 <Input
@@ -334,6 +350,7 @@ export default function Settings() {
                       age:e.target.value
                     })
                   }
+                  variant="dark"
                 />
 
                 <Input
@@ -346,6 +363,7 @@ export default function Settings() {
                       householdSize:e.target.value
                     })
                   }
+                  variant="dark"
                 />
 
                 <Button
@@ -451,6 +469,7 @@ export default function Settings() {
                       oldPassword:e.target.value
                     })
                   }
+                  variant="dark"
                 />
 
                 <Input
@@ -463,6 +482,7 @@ export default function Settings() {
                       newPassword:e.target.value
                     })
                   }
+                  variant="dark"
                 />
 
                 <Input
@@ -475,6 +495,7 @@ export default function Settings() {
                       confirmPassword:e.target.value
                     })
                   }
+                  variant="dark"
                 />
 
                 <Button
