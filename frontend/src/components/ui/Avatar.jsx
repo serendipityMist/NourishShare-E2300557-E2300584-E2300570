@@ -25,12 +25,17 @@ export default function Avatar({
   }
 
   return (
-    <img
-      src={imgSrc}
-      alt={name}
-      onError={handleError}
-      className={`${sizeClass} aspect-square rounded-full object-cover object-center border-2 border-primary bg-gray-100 ${className}`}
-    />
+    <span
+      className={`${sizeClass} inline-block shrink-0 rounded-full overflow-hidden border-2 border-primary bg-gray-100`}
+      style={{ borderRadius: '9999px' }}
+    >
+      <img
+        src={imgSrc}
+        alt={name}
+        onError={handleError}
+        className={`w-full h-full aspect-square !rounded-full object-cover object-center ${className}`}
+        style={{ borderRadius: '9999px' }}
+      />
+    </span>
   );
 }
-
