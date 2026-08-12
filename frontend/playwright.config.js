@@ -1,37 +1,32 @@
-// @ts-check
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
     testDir: './tests',
 
-    // TODO: uncomment once tests/global-setup.js exists in this project
-    // and its login/delete endpoint placeholders have been fixed.
-    // globalSetup: './tests/global-setup.js',
-
+    // fullyParallel only controls parallelism WITHIN a spec file.
+    // It does NOT stop different projects (chromium/firefox/webkit)
+    // from running at the same time against the same dev server
+    // and the same test account — that's what was causing the
+    // strict-mode violations ("resolved to 2/3 elements") and the
+    // NS_ERROR_CONNECTION_REFUSED / page-crashed failures.
     fullyParallel: false,
 
-    forbidOnly: !!process.env.CI,
-
-    retries: process.env.CI ? 2 : 0,
-
-    // Run tests one at a time because they share the same
-    // login account and development server.
+    // Force everything — including different projects — to run
+    // one test at a time. This stops chromium/firefox/webkit from
+    // simultaneously logging into the same account and creating
+    // meals with the same names at the same time.
     workers: 1,
 
-    reporter: 'html',
+    timeout: 30000,
 
-    // Default timeout for each test.
-    timeout: 60000,
+    expect: {
+        timeout: 10000,
+    },
 
     use: {
-        // IMPORTANT:
-        // This must be a normal URL, NOT Markdown.
         baseURL: 'http://localhost:5173',
-
         trace: 'on-first-retry',
-
         screenshot: 'on',
-
         video: 'on',
     },
 
@@ -58,15 +53,9 @@ export default defineConfig({
         },
     ],
 
-    // Playwright automatically starts the Vite development server
-    // if it is not already running.
     webServer: {
         command: 'npm run dev',
-
-        // IMPORTANT:
-        // This must also be a normal URL, NOT Markdown.
         url: 'http://localhost:5173',
-
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: true,
     },
 });
