@@ -289,8 +289,11 @@ export default function AddEditItemModal({
         className="p-lg space-y-lg"
         onSubmit={handleSubmit}
       >
-        {/* Food Image */}
-        <div className="flex flex-col items-center justify-center p-xl border-2 border-dashed border-outline-variant rounded-xl bg-surface-container-lowest">
+        {/* Food Image — whole dropzone is the trigger, no visible file chooser */}
+        <label
+          htmlFor="food-image-upload"
+          className="flex flex-col items-center justify-center p-xl border-2 border-dashed border-outline-variant rounded-xl bg-surface-container-lowest cursor-pointer transition-colors hover:border-primary hover:bg-primary/5 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30"
+        >
           <div className="w-14 h-14 bg-primary-fixed rounded-full flex items-center justify-center mb-sm">
             <span className="material-symbols-outlined text-primary text-2xl">
               add_a_photo
@@ -302,10 +305,13 @@ export default function AddEditItemModal({
           </p>
 
           <p className="text-label-sm text-on-surface-variant mb-md">
-            Food image is required when adding a new item
+            {form.foodImage
+              ? form.foodImage.name
+              : 'Food image is required when adding a new item'}
           </p>
 
           <input
+            id="food-image-upload"
             type="file"
             accept="image/*"
             onChange={(e) =>
@@ -315,7 +321,7 @@ export default function AddEditItemModal({
                   null
               )
             }
-            className="block w-full text-sm"
+            className="sr-only"
           />
 
           {isEditMode &&
@@ -330,7 +336,7 @@ export default function AddEditItemModal({
                 className="mt-md w-32 h-24 object-cover rounded-lg"
               />
             )}
-        </div>
+        </label>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
           {/* Name */}
@@ -345,6 +351,7 @@ export default function AddEditItemModal({
                   e.target.value
                 )
               }
+              variant="dark"
               required
             />
           </div>
@@ -392,6 +399,7 @@ export default function AddEditItemModal({
                     e.target.value
                   )
                 }
+                variant="dark"
                 required
               />
             </div>
@@ -430,6 +438,7 @@ export default function AddEditItemModal({
                 e.target.value
               )
             }
+            variant="dark"
             required
           />
 
