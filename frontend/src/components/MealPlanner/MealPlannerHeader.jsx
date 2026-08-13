@@ -11,12 +11,12 @@ const MealPlannerHeader = ({
       <div className="flex flex-col gap-lg lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-sm">
           <div className="flex flex-wrap items-center gap-md">
-            <button className="p-sm hover:bg-surface-container rounded-full transition-colors">
-              <span className="material-symbols-outlined">chevron_left</span>
+            <button type="button" aria-label="View previous week" className="p-sm hover:bg-surface-container rounded-full transition-colors">
+              <span aria-hidden="true" className="material-symbols-outlined">chevron_left</span>
             </button>
             <h2 className="font-headline-lg text-headline-lg">Weekly Meal Planner</h2>
-            <button className="p-sm hover:bg-surface-container rounded-full transition-colors">
-              <span className="material-symbols-outlined">chevron_right</span>
+            <button type="button" aria-label="View next week" className="p-sm hover:bg-surface-container rounded-full transition-colors">
+              <span aria-hidden="true" className="material-symbols-outlined">chevron_right</span>
             </button>
           </div>
           <p className="text-on-surface-variant font-body-md italic">
@@ -26,8 +26,9 @@ const MealPlannerHeader = ({
 
         <div className="flex flex-col gap-sm w-full max-w-xl">
           <div className="relative w-full max-w-md focus-within:ring-2 focus-within:ring-primary-container rounded-full overflow-hidden border border-outline-variant">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+            <span aria-hidden="true" className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
             <input
+              aria-label="Search planned meals"
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
               className="w-full py-2.5 pl-12 pr-4 bg-surface-container-low border-none focus:ring-0 text-sm"
