@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import MealPlannerHeader from '../components/MealPlanner/MealPlannerHeader.jsx';
 import MealPlannerGrid from '../components/MealPlanner/MealPlannerGrid.jsx';
@@ -7,80 +7,66 @@ import { useInventory } from '../hooks/useInventory.js';
 import { mealPlanService } from '../services/mealPlanService.js';
 import { recipeService } from '../services/recipeService.js';
 import { getExpiryStatus, daysUntil } from '../utils/dateUtils.js';
-import { DAYS, MEAL_SLOTS, TOTAL_WEEKLY_SLOTS, MAX_SUGGESTIONS } from '../components/MealPlanner/constants.js';
+import { TOTAL_WEEKLY_SLOTS, MAX_SUGGESTIONS } from '../components/MealPlanner/constants.js';
 import {
   validateDishName,
   buildMealPayload,
-  addItemToSelection,
-  removeItemFromSelection,
   calculateCompletionPercentage,
   getErrorMessage,
-  initializeModalState,
 } from '../components/MealPlanner/mealPlannerUtils.js';
+import { useMealPlannerState, ACTIONS } from '../components/MealPlanner/mealPlannerReducer.js';
 
 export default function MealPlanner() {
   const { activeItems } = useInventory();
-  const [mealPlans, setMealPlans] = useState([]);
-  const [search, setSearch] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [currentEditingId, setCurrentEditingId] = useState(null);
-  const [currentSlot, setCurrentSlot] = useState('Breakfast');
-  const [mealDay, setMealDay] = useState('Monday');
-  const [dishName, setDishName] = useState('');
-  const [selectedItems, setSelectedItems] = useState([]);
-  const [inventoryMenuOpen, setInventoryMenuOpen] = useState(false);
-  const [reminderActive, setReminderActive] = useState(false);
-  const [reminderTime, setReminderTime] = useState('60');
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastOpen, setToastOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
-  const [selectedRecipe, setSelectedRecipe] = useState(null);
-  const [recipeDetails, setRecipeDetails] = useState(null);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [recipeLoading, setRecipeLoading] = useState(false);
-  const [expiringItems, setExpiringItems] = useState([]);
+  const [state, dispatch] = useMealPlannerState();
 
+  const { modal, recipe, ui, mealPlans } = state;
+
+  // Toast auto-close effect
   useEffect(() => {
-    if (!toastOpen) return;
-    const timer = window.setTimeout(() => setToastOpen(false), 4000);
+    if (!ui.toastOpen) return;
+    const timer = window.setTimeout(() => {
+      dispatch({ type: ACTIONS.HIDE_TOAST });
+    }, 4000);
     return () => window.clearTimeout(timer);
-  }, [toastOpen]);
+  }, [ui.toastOpen, dispatch]);
 
-  useEffect(() => {
-    setExpiringItems(
-      activeItems
-        .filter((item) => getExpiryStatus(item.expiryDate) === 'expiring')
-        .sort((a, b) => daysUntil(a.expiryDate) - daysUntil(b.expiryDate))
-        .slice(0, 5)
-    );
-  }, [activeItems]);
-
+  // Fetch meal plans on mount
   useEffect(() => {
     fetchMealPlans();
   }, []);
 
+  // Set expiring items when active items change
+  useEffect(() => {
+    const expiring = activeItems
+      .filter((item) => getExpiryStatus(item.expiryDate) === 'expiring')
+      .sort((a, b) => daysUntil(a.expiryDate) - daysUntil(b.expiryDate))
+      .slice(0, 5);
+    dispatch({ type: ACTIONS.SET_EXPIRING_ITEMS, payload: expiring });
+  }, [activeItems, dispatch]);
+
   async function fetchMealPlans() {
     try {
       const response = await mealPlanService.getMyMealPlans();
-      setMealPlans(response.data.data.mealPlans || []);
+      dispatch({ type: ACTIONS.SET_MEAL_PLANS, payload: response.data.data.mealPlans || [] });
     } catch (error) {
       console.error('Failed to fetch meal plans', error);
     }
   }
 
-  async function fetchRecipeSuggestions() {
-    const selectedIngredientTokens = selectedItems
+  const fetchRecipeSuggestions = useCallback(async () => {
+    const selectedIngredientTokens = modal.selectedItems
       .flatMap((item) => item.name.split(/[,/()\s-]+/))
       .map((token) => token.trim().toLowerCase())
       .filter(Boolean);
 
     if (!selectedIngredientTokens.length) {
-      setSuggestions([]);
+      dispatch({ type: ACTIONS.SET_SUGGESTIONS, payload: [] });
       return;
     }
 
     const searchTerms = Array.from(new Set(selectedIngredientTokens));
-    setLoadingSuggestions(true);
+    dispatch({ type: ACTIONS.SET_LOADING_SUGGESTIONS, payload: true });
 
     try {
       const responses = await Promise.all(
@@ -111,187 +97,186 @@ export default function MealPlanner() {
           .slice(0, MAX_SUGGESTIONS);
       }
 
-      if (!finalMeals.length && dishName.trim()) {
-        const response = await recipeService.searchByName(dishName.trim());
+      if (!finalMeals.length && modal.dishName.trim()) {
+        const response = await recipeService.searchByName(modal.dishName.trim());
         finalMeals = response.data.meals || [];
       }
 
-      setSuggestions(finalMeals.slice(0, MAX_SUGGESTIONS));
+      dispatch({ type: ACTIONS.SET_SUGGESTIONS, payload: finalMeals.slice(0, MAX_SUGGESTIONS) });
     } catch (error) {
       console.error('Recipe suggestions failed', error);
-      setSuggestions([]);
+      dispatch({ type: ACTIONS.SET_SUGGESTIONS, payload: [] });
     } finally {
-      setLoadingSuggestions(false);
+      dispatch({ type: ACTIONS.SET_LOADING_SUGGESTIONS, payload: false });
     }
-  }
+  }, [modal.selectedItems, modal.dishName, dispatch]);
 
-  async function openRecipe(recipe) {
-    setSelectedRecipe(recipe);
-    setDishName(recipe.strMeal);
+  const openRecipe = useCallback(async (recipeData) => {
+    dispatch({ type: ACTIONS.SELECT_RECIPE, payload: recipeData });
+    dispatch({ type: ACTIONS.SET_RECIPE_LOADING, payload: true });
 
-    setRecipeLoading(true);
     try {
-      const response = await recipeService.getById(recipe.idMeal);
+      const response = await recipeService.getById(recipeData.idMeal);
       const details = response.data.meals?.[0] || null;
-      setRecipeDetails(details);
+      dispatch({ type: ACTIONS.SET_RECIPE_DETAILS, payload: details });
     } catch (error) {
       console.error('Failed to load recipe details', error);
-      setRecipeDetails(null);
+      dispatch({ type: ACTIONS.SET_RECIPE_DETAILS, payload: null });
     } finally {
-      setRecipeLoading(false);
+      dispatch({ type: ACTIONS.SET_RECIPE_LOADING, payload: false });
     }
-  }
+  }, [dispatch]);
 
+  // Memoized filtered meals
   const filteredMeals = useMemo(() => {
-    if (!search.trim()) return mealPlans;
-    return mealPlans.filter((meal) => meal.mealName.toLowerCase().includes(search.toLowerCase()));
-  }, [mealPlans, search]);
+    if (!modal.dishName.trim()) return mealPlans;
+    const searchTerm = modal.dishName.toLowerCase();
+    return mealPlans.filter((meal) =>
+      meal.mealName.toLowerCase().includes(searchTerm)
+    );
+  }, [mealPlans, modal.dishName]);
 
-  const mealCount = filteredMeals.length;
-  const completion = calculateCompletionPercentage(mealCount, TOTAL_WEEKLY_SLOTS);
+  // Memoized completion percentage
+  const completion = useMemo(
+    () => calculateCompletionPercentage(filteredMeals.length, TOTAL_WEEKLY_SLOTS),
+    [filteredMeals.length]
+  );
 
-  function openModal(day, slot, id = null) {
+  // Memoized callback handlers
+  const handleOpenModal = useCallback((day, slot, id = null) => {
     const existing = mealPlans.find((meal) => meal._id === id);
-    const state = initializeModalState(existing, day, slot);
+    dispatch({
+      type: ACTIONS.OPEN_MODAL,
+      payload: {
+        editingId: id,
+        day,
+        slot,
+        dishName: existing?.mealName || '',
+        selectedItems: existing?.food || [],
+        reminderActive: existing?.reminderActive || false,
+        reminderTime: String(existing?.reminderTime) || '60',
+      },
+    });
+  }, [mealPlans, dispatch]);
 
-    setCurrentEditingId(state.currentEditingId);
-    setMealDay(state.mealDay);
-    setCurrentSlot(state.currentSlot);
-    setDishName(state.dishName);
-    setSelectedItems(state.selectedItems);
-    setReminderActive(state.reminderActive);
-    setReminderTime(state.reminderTime);
-    setInventoryMenuOpen(false);
-    setModalOpen(true);
-  }
+  const handleCloseModal = useCallback(() => {
+    dispatch({ type: ACTIONS.CLOSE_MODAL });
+  }, [dispatch]);
 
-  function closeModal() {
-    setModalOpen(false);
-    setInventoryMenuOpen(false);
-  }
-
-  async function saveMeal() {
-    const validation = validateDishName(dishName);
+  const handleSaveMeal = useCallback(async () => {
+    const validation = validateDishName(modal.dishName);
     if (!validation.isValid) {
-      setToastMessage(validation.message);
-      setToastOpen(true);
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: validation.message });
       return;
     }
 
     const payload = buildMealPayload(
-      dishName,
-      selectedItems,
-      mealDay,
-      currentSlot,
-      reminderActive,
-      reminderTime,
-      selectedRecipe,
-      recipeDetails,
-      suggestions
+      modal.dishName,
+      modal.selectedItems,
+      modal.mealDay,
+      modal.currentSlot,
+      modal.reminderActive,
+      modal.reminderTime,
+      recipe.selectedRecipe,
+      recipe.recipeDetails,
+      recipe.suggestions
     );
 
     try {
       const response = await mealPlanService.addMealPlanEntry(payload);
       const savedPlan = response.data.data.mealPlan;
 
-      setMealPlans((prev) => {
-        if (currentEditingId) {
-          return prev.map((meal) => (meal._id === currentEditingId ? savedPlan : meal));
-        }
-        return [...prev, savedPlan];
-      });
+      if (modal.currentEditingId) {
+        dispatch({ type: ACTIONS.UPDATE_MEAL_PLAN, payload: savedPlan });
+      } else {
+        dispatch({ type: ACTIONS.ADD_MEAL_PLAN, payload: savedPlan });
+      }
 
-      setToastMessage(`Saved ${savedPlan.mealName}`);
-      setToastOpen(true);
-      closeModal();
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: `Saved ${savedPlan.mealName}` });
+      handleCloseModal();
     } catch (error) {
       console.error('Failed to save meal plan', error);
-      setToastMessage(getErrorMessage(error, 'Unable to save meal plan'));
-      setToastOpen(true);
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: getErrorMessage(error, 'Unable to save meal plan') });
     }
-  }
+  }, [modal, recipe, dispatch, handleCloseModal]);
 
-  async function deleteMeal() {
-    if (!currentEditingId) {
-      setToastMessage('Unable to remove meal');
-      setToastOpen(true);
+  const handleDeleteMeal = useCallback(async () => {
+    if (!modal.currentEditingId) {
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: 'Unable to remove meal' });
       return;
     }
 
     try {
-      await mealPlanService.deleteMealPlanEntry(currentEditingId);
-      setMealPlans((prev) => prev.filter((meal) => meal._id !== currentEditingId));
-      setToastMessage('Meal removed');
-      setToastOpen(true);
-      closeModal();
+      await mealPlanService.deleteMealPlanEntry(modal.currentEditingId);
+      dispatch({ type: ACTIONS.DELETE_MEAL_PLAN, payload: modal.currentEditingId });
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: 'Meal removed' });
+      handleCloseModal();
     } catch (error) {
       console.error('Failed to delete meal plan', error);
-      setToastMessage(error.response?.data?.message || 'Unable to delete meal plan');
-      setToastOpen(true);
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: getErrorMessage(error, 'Unable to delete meal plan') });
     }
-  }
+  }, [modal.currentEditingId, dispatch, handleCloseModal]);
 
-  function toggleReminder() {
-    setReminderActive((active) => !active);
-  }
+  const handleAddInventoryItem = useCallback((item) => {
+    dispatch({ type: ACTIONS.ADD_ITEM, payload: item });
+  }, [dispatch]);
 
-  function addInventoryItem(item) {
-    setSelectedItems((prev) => addItemToSelection(item, prev));
-    setInventoryMenuOpen(false);
-  }
+  const handleRemoveInventoryItem = useCallback((itemId) => {
+    dispatch({ type: ACTIONS.REMOVE_ITEM, payload: itemId });
+  }, [dispatch]);
 
-  function removeInventoryItem(itemId) {
-    setSelectedItems((prev) => removeItemFromSelection(itemId, prev));
-  }
+  const handleToggleReminder = useCallback(() => {
+    dispatch({ type: ACTIONS.SET_REMINDER_ACTIVE, payload: !modal.reminderActive });
+  }, [modal.reminderActive, dispatch]);
 
   return (
     <AppLayout title="Meal Planner">
       <MealPlannerHeader
-        search={search}
-        onSearchChange={setSearch}
-        expiringItems={expiringItems}
+        search={modal.dishName}
+        onSearchChange={(value) => dispatch({ type: ACTIONS.SET_DISH_NAME, payload: value })}
+        expiringItems={ui.expiringItems}
       />
 
       <MealPlannerGrid
         mealPlans={filteredMeals}
-        onOpenModal={openModal}
+        onOpenModal={handleOpenModal}
       />
 
       <MealPlannerModal
-        isOpen={modalOpen}
-        isEditing={Boolean(currentEditingId)}
-        mealDay={mealDay}
-        currentSlot={currentSlot}
-        dishName={dishName}
-        selectedItems={selectedItems}
-        inventoryMenuOpen={inventoryMenuOpen}
-        reminderActive={reminderActive}
-        reminderTime={reminderTime}
-        suggestions={suggestions}
-        selectedRecipe={selectedRecipe}
-        recipeDetails={recipeDetails}
-        loadingSuggestions={loadingSuggestions}
-        recipeLoading={recipeLoading}
+        isOpen={modal.modalOpen}
+        isEditing={Boolean(modal.currentEditingId)}
+        mealDay={modal.mealDay}
+        currentSlot={modal.currentSlot}
+        dishName={modal.dishName}
+        selectedItems={modal.selectedItems}
+        inventoryMenuOpen={modal.inventoryMenuOpen}
+        reminderActive={modal.reminderActive}
+        reminderTime={modal.reminderTime}
+        suggestions={recipe.suggestions}
+        selectedRecipe={recipe.selectedRecipe}
+        recipeDetails={recipe.recipeDetails}
+        loadingSuggestions={recipe.loadingSuggestions}
+        recipeLoading={recipe.recipeLoading}
         activeItems={activeItems}
-        onMealDayChange={setMealDay}
-        onMealSlotChange={setCurrentSlot}
-        onDishNameChange={setDishName}
+        onMealDayChange={(value) => dispatch({ type: ACTIONS.SET_MEAL_DAY, payload: value })}
+        onMealSlotChange={(value) => dispatch({ type: ACTIONS.SET_MEAL_SLOT, payload: value })}
+        onDishNameChange={(value) => dispatch({ type: ACTIONS.SET_DISH_NAME, payload: value })}
         onFetchRecipeSuggestions={fetchRecipeSuggestions}
         onRecipeSelect={openRecipe}
-        onAddInventoryItem={addInventoryItem}
-        onRemoveInventoryItem={removeInventoryItem}
-        onToggleInventoryMenu={setInventoryMenuOpen}
-        onToggleReminder={toggleReminder}
-        onReminderTimeChange={setReminderTime}
-        onSave={saveMeal}
-        onDelete={deleteMeal}
-        onClose={closeModal}
+        onAddInventoryItem={handleAddInventoryItem}
+        onRemoveInventoryItem={handleRemoveInventoryItem}
+        onToggleInventoryMenu={(value) => dispatch({ type: ACTIONS.TOGGLE_INVENTORY_MENU, payload: value })}
+        onToggleReminder={handleToggleReminder}
+        onReminderTimeChange={(value) => dispatch({ type: ACTIONS.SET_REMINDER_TIME, payload: value })}
+        onSave={handleSaveMeal}
+        onDelete={handleDeleteMeal}
+        onClose={handleCloseModal}
       />
 
-      {toastOpen && (
+      {ui.toastOpen && (
         <div className="fixed bottom-6 right-6 bg-inverse-surface text-inverse-on-surface px-6 py-3 rounded-lg shadow-xl flex items-center gap-3 z-[100]">
           <span className="material-symbols-outlined text-primary-fixed">timer</span>
-          <span>{toastMessage}</span>
+          <span>{ui.toastMessage}</span>
         </div>
       )}
     </AppLayout>

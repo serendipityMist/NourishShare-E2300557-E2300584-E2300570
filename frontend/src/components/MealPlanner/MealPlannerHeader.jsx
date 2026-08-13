@@ -1,10 +1,11 @@
+import React from 'react';
 import { daysUntil, getExpiryStatus } from '../../utils/dateUtils.js';
 
-export default function MealPlannerHeader({
+const MealPlannerHeader = ({
   search,
   onSearchChange,
   expiringItems,
-}) {
+}) => {
   return (
     <div className="mb-xl flex flex-col gap-lg">
       <div className="flex flex-col gap-lg lg:flex-row lg:items-center lg:justify-between">
@@ -64,4 +65,6 @@ export default function MealPlannerHeader({
       </div>
     </div>
   );
-}
+};
+
+export default React.memo(MealPlannerHeader);
