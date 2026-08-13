@@ -223,7 +223,9 @@ export default function MealPlanner() {
 
     try {
       const response = await retryWithBackoff(
-        () => mealPlanService.addMealPlanEntry(payload),
+        () => modal.currentEditingId
+          ? mealPlanService.updateMealPlanEntry(modal.currentEditingId, payload)
+          : mealPlanService.addMealPlanEntry(payload),
         3,
         1000
       );

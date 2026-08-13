@@ -125,6 +125,12 @@ export function mealPlannerReducer(state, action) {
       };
 
     case ACTIONS.ADD_ITEM:
+      if (state.modal.selectedItems.some((item) => item._id === action.payload._id)) {
+        return {
+          ...state,
+          modal: { ...state.modal, inventoryMenuOpen: false },
+        };
+      }
       return {
         ...state,
         modal: {
