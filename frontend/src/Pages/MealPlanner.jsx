@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback } from 'react';
+import { useEffect, useMemo, useCallback, useState } from 'react';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import MealPlannerHeader from '../components/MealPlanner/MealPlannerHeader.jsx';
 import MealPlannerGrid from '../components/MealPlanner/MealPlannerGrid.jsx';
@@ -22,9 +22,21 @@ import {
   logError,
 } from '../components/MealPlanner/errorHandling.js';
 
+function getMonday(date = new Date()) {
+  const monday = new Date(date);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return monday;
+}
+
+function formatWeekStartDate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 export default function MealPlanner() {
   const { activeItems } = useInventory();
   const [state, dispatch] = useMealPlannerState();
+  const [weekStart, setWeekStart] = useState(getMonday);
 
   const { modal, recipe, ui, mealPlans } = state;
 
@@ -40,7 +52,7 @@ export default function MealPlanner() {
   // Fetch meal plans on mount
   useEffect(() => {
     fetchMealPlans();
-  }, []);
+  }, [weekStart]);
 
   // Set expiring items when active items change
   useEffect(() => {
@@ -54,7 +66,7 @@ export default function MealPlanner() {
   async function fetchMealPlans() {
     try {
       const response = await retryWithBackoff(
-        () => mealPlanService.getMyMealPlans(),
+        () => mealPlanService.getMyMealPlans(formatWeekStartDate(weekStart)),
         3,
         1000
       );
@@ -220,6 +232,7 @@ export default function MealPlanner() {
       recipe.recipeDetails,
       recipe.suggestions
     );
+    payload.weekStartDate = formatWeekStartDate(weekStart);
 
     try {
       const response = await retryWithBackoff(
@@ -256,7 +269,46 @@ export default function MealPlanner() {
         dispatch({ type: ACTIONS.SET_ERROR, payload: { message: errorMsg, context: 'save', payload } });
       }
     }
-  }, [modal, recipe, dispatch, handleCloseModal]);
+  }, [modal, recipe, weekStart, dispatch, handleCloseModal]);
+
+  const handleCopyToNextWeek = useCallback(async (meal) => {
+    const nextWeek = new Date(weekStart);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const payload = {
+      foodIds: (meal.food || []).map((item) => item._id),
+      day: meal.day,
+      mealType: meal.mealType,
+      mealName: meal.mealName,
+      mealImage: meal.mealImage || '',
+      reminderActive: meal.reminderActive || false,
+      reminderTime: Number(meal.reminderTime) || 60,
+      weekStartDate: formatWeekStartDate(nextWeek),
+    };
+
+    try {
+      await retryWithBackoff(() => mealPlanService.addMealPlanEntry(payload), 3, 1000);
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: `✓ Copied ${meal.mealName} to next week` });
+    } catch (error) {
+      const errorMsg = getDetailedErrorMessage(error, 'Unable to copy meal to next week.');
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: errorMsg });
+      logError(error, 'handleCopyToNextWeek');
+    }
+  }, [weekStart, dispatch]);
+
+  const changeWeek = useCallback((offset) => {
+    setWeekStart((currentWeek) => {
+      const nextWeek = new Date(currentWeek);
+      nextWeek.setDate(nextWeek.getDate() + offset * 7);
+      return nextWeek;
+    });
+  }, []);
+
+  const weekLabel = useMemo(() => {
+    const endOfWeek = new Date(weekStart);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+    const formatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+    return `${formatter.format(weekStart)} – ${formatter.format(endOfWeek)}`;
+  }, [weekStart]);
 
   const handleDeleteMeal = useCallback(async () => {
     if (!modal.currentEditingId) {
@@ -306,11 +358,16 @@ export default function MealPlanner() {
         search={modal.dishName}
         onSearchChange={(value) => dispatch({ type: ACTIONS.SET_DISH_NAME, payload: value })}
         expiringItems={ui.expiringItems}
+        weekLabel={weekLabel}
+        onPreviousWeek={() => changeWeek(-1)}
+        onNextWeek={() => changeWeek(1)}
       />
 
       <MealPlannerGrid
         mealPlans={filteredMeals}
         onOpenModal={handleOpenModal}
+        onCopyToNextWeek={handleCopyToNextWeek}
+        weekStart={weekStart}
       />
 
       <MealPlannerModal

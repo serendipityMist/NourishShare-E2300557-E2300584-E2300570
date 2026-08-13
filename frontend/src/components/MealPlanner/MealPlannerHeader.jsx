@@ -5,17 +5,23 @@ const MealPlannerHeader = ({
   search,
   onSearchChange,
   expiringItems,
+  weekLabel,
+  onPreviousWeek,
+  onNextWeek,
 }) => {
   return (
     <div className="mb-xl flex flex-col gap-lg">
       <div className="flex flex-col gap-lg lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-sm">
           <div className="flex flex-wrap items-center gap-md">
-            <button type="button" aria-label="View previous week" className="p-sm hover:bg-surface-container rounded-full transition-colors">
+            <button type="button" onClick={onPreviousWeek} aria-label="View previous week" className="p-sm hover:bg-surface-container rounded-full transition-colors">
               <span aria-hidden="true" className="material-symbols-outlined">chevron_left</span>
             </button>
-            <h2 className="font-headline-lg text-headline-lg">Weekly Meal Planner</h2>
-            <button type="button" aria-label="View next week" className="p-sm hover:bg-surface-container rounded-full transition-colors">
+            <div>
+              <h2 className="font-headline-lg text-headline-lg">Weekly Meal Planner</h2>
+              <p className="text-xs font-semibold text-on-surface-variant">{weekLabel}</p>
+            </div>
+            <button type="button" onClick={onNextWeek} aria-label="View next week" className="p-sm hover:bg-surface-container rounded-full transition-colors">
               <span aria-hidden="true" className="material-symbols-outlined">chevron_right</span>
             </button>
           </div>
