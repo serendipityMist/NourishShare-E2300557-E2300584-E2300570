@@ -1,5 +1,5 @@
 import { useReducer } from 'react';
-import { DEFAULT_REMINDER_TIME } from './constants.ts';
+import { DEFAULT_REMINDER_TIME } from './constants.js';
 
 const initialModalState = {
   modalOpen: false,
@@ -27,9 +27,6 @@ const initialUIState = {
   expiringItems: [],
   error: null,
   errorRetryCount: 0,
-  loadingMealPlans: false,
-  savingMeal: false,
-  deletingMeal: false,
 };
 
 export const initialState = {
@@ -69,9 +66,6 @@ export const ACTIONS = {
   SET_ERROR: 'SET_ERROR',
   CLEAR_ERROR: 'CLEAR_ERROR',
   RESET_ERROR_RETRY: 'RESET_ERROR_RETRY',
-  SET_LOADING_MEAL_PLANS: 'SET_LOADING_MEAL_PLANS',
-  SET_SAVING_MEAL: 'SET_SAVING_MEAL',
-  SET_DELETING_MEAL: 'SET_DELETING_MEAL',
 
   // Meal plans actions
   SET_MEAL_PLANS: 'SET_MEAL_PLANS',
@@ -131,9 +125,6 @@ export function mealPlannerReducer(state, action) {
       };
 
     case ACTIONS.ADD_ITEM:
-      if (state.modal.selectedItems.some((item) => item._id === action.payload._id)) {
-        return { ...state, modal: { ...state.modal, inventoryMenuOpen: false } };
-      }
       return {
         ...state,
         modal: {
@@ -263,15 +254,6 @@ export function mealPlannerReducer(state, action) {
         ...state,
         ui: { ...state.ui, errorRetryCount: (state.ui.errorRetryCount || 0) + 1 },
       };
-
-    case ACTIONS.SET_LOADING_MEAL_PLANS:
-      return { ...state, ui: { ...state.ui, loadingMealPlans: action.payload } };
-
-    case ACTIONS.SET_SAVING_MEAL:
-      return { ...state, ui: { ...state.ui, savingMeal: action.payload } };
-
-    case ACTIONS.SET_DELETING_MEAL:
-      return { ...state, ui: { ...state.ui, deletingMeal: action.payload } };
 
     // Meal plans actions
     case ACTIONS.SET_MEAL_PLANS:

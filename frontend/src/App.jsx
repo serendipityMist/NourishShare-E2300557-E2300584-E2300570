@@ -18,7 +18,7 @@ import ResetPassword from './pages/auth/ResetPassword.jsx';
 import Welcome from './pages/Welcome.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Notifications from './pages/Notifications.jsx';
-import MealPlanner from './pages/MealPlanner.tsx';
+import MealPlanner from './pages/MealPlanner.jsx';
 import Settings from './pages/settings/Settings.jsx';
 
 import InventoryList from './pages/inventory/InventoryList.jsx';

@@ -1,12 +1,11 @@
 import React from 'react';
 import { daysUntil, getExpiryStatus } from '../../utils/dateUtils.js';
-import type { InventoryItem } from './types.ts';
 
 const MealPlannerHeader = ({
   search,
   onSearchChange,
   expiringItems,
-}: { search: string; onSearchChange: (value: string) => void; expiringItems: InventoryItem[] }) => {
+}) => {
   return (
     <div className="mb-xl flex flex-col gap-lg">
       <div className="flex flex-col gap-lg lg:flex-row lg:items-center lg:justify-between">
