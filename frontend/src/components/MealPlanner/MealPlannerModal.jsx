@@ -1,9 +1,7 @@
 import { useCallback } from 'react';
 import RecipeSuggestions from './RecipeSuggestions.jsx';
+import { DAYS, MEAL_SLOTS, REMINDER_OPTIONS } from './constants.js';
 import { getExpiryStatus } from '../../utils/dateUtils.js';
-
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const MEAL_SLOTS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
 export default function MealPlannerModal({
   isOpen,
@@ -184,9 +182,11 @@ export default function MealPlannerModal({
                 onChange={(e) => onReminderTimeChange(e.target.value)}
                 className="bg-transparent border-none focus:ring-0 text-xs pr-8"
               >
-                <option value="30">30 mins before</option>
-                <option value="60">1 hour before</option>
-                <option value="120">2 hours before</option>
+                {REMINDER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
               <button
                 type="button"

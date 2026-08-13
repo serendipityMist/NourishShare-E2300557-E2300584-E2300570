@@ -7,6 +7,16 @@ import { useInventory } from '../hooks/useInventory.js';
 import { mealPlanService } from '../services/mealPlanService.js';
 import { recipeService } from '../services/recipeService.js';
 import { getExpiryStatus, daysUntil } from '../utils/dateUtils.js';
+import { DAYS, MEAL_SLOTS, TOTAL_WEEKLY_SLOTS, MAX_SUGGESTIONS } from '../components/MealPlanner/constants.js';
+import {
+  validateDishName,
+  buildMealPayload,
+  addItemToSelection,
+  removeItemFromSelection,
+  calculateCompletionPercentage,
+  getErrorMessage,
+  initializeModalState,
+} from '../components/MealPlanner/mealPlannerUtils.js';
 
 export default function MealPlanner() {
   const { activeItems } = useInventory();
@@ -98,7 +108,7 @@ export default function MealPlanner() {
 
         finalMeals = Object.values(mealMap)
           .sort((a, b) => b.matchCount - a.matchCount)
-          .slice(0, 8);
+          .slice(0, MAX_SUGGESTIONS);
       }
 
       if (!finalMeals.length && dishName.trim()) {
@@ -106,7 +116,7 @@ export default function MealPlanner() {
         finalMeals = response.data.meals || [];
       }
 
-      setSuggestions(finalMeals.slice(0, 8));
+      setSuggestions(finalMeals.slice(0, MAX_SUGGESTIONS));
     } catch (error) {
       console.error('Recipe suggestions failed', error);
       setSuggestions([]);
@@ -138,27 +148,20 @@ export default function MealPlanner() {
   }, [mealPlans, search]);
 
   const mealCount = filteredMeals.length;
-  const completion = mealCount ? Math.min(100, Math.round((mealCount / (DAYS.length * MEAL_SLOTS.length)) * 100)) : 0;
+  const completion = calculateCompletionPercentage(mealCount, TOTAL_WEEKLY_SLOTS);
 
   function openModal(day, slot, id = null) {
     const existing = mealPlans.find((meal) => meal._id === id);
-    setCurrentEditingId(id);
-    setMealDay(day);
-    setCurrentSlot(slot);
+    const state = initializeModalState(existing, day, slot);
+
+    setCurrentEditingId(state.currentEditingId);
+    setMealDay(state.mealDay);
+    setCurrentSlot(state.currentSlot);
+    setDishName(state.dishName);
+    setSelectedItems(state.selectedItems);
+    setReminderActive(state.reminderActive);
+    setReminderTime(state.reminderTime);
     setInventoryMenuOpen(false);
-
-    if (existing) {
-      setDishName(existing.mealName);
-      setSelectedItems(existing.food || []);
-      setReminderActive(false);
-      setReminderTime('60');
-    } else {
-      setDishName('');
-      setSelectedItems([]);
-      setReminderActive(false);
-      setReminderTime('60');
-    }
-
     setModalOpen(true);
   }
 
@@ -168,25 +171,24 @@ export default function MealPlanner() {
   }
 
   async function saveMeal() {
-    if (!dishName.trim()) {
-      setToastMessage('Please enter a dish name.');
+    const validation = validateDishName(dishName);
+    if (!validation.isValid) {
+      setToastMessage(validation.message);
       setToastOpen(true);
       return;
     }
 
-    const payload = {
-      foodIds: selectedItems.map((item) => item._id),
-      day: mealDay,
-      mealType: currentSlot,
-      mealName: dishName.trim(),
-      mealImage:
-        selectedRecipe?.strMealThumb ||
-        recipeDetails?.strMealThumb ||
-        suggestions?.[0]?.strMealThumb ||
-        '',
+    const payload = buildMealPayload(
+      dishName,
+      selectedItems,
+      mealDay,
+      currentSlot,
       reminderActive,
-      reminderTime: Number(reminderTime)
-    };
+      reminderTime,
+      selectedRecipe,
+      recipeDetails,
+      suggestions
+    );
 
     try {
       const response = await mealPlanService.addMealPlanEntry(payload);
@@ -204,7 +206,7 @@ export default function MealPlanner() {
       closeModal();
     } catch (error) {
       console.error('Failed to save meal plan', error);
-      setToastMessage(error.response?.data?.message || 'Unable to save meal plan');
+      setToastMessage(getErrorMessage(error, 'Unable to save meal plan'));
       setToastOpen(true);
     }
   }
@@ -234,12 +236,12 @@ export default function MealPlanner() {
   }
 
   function addInventoryItem(item) {
-    setSelectedItems((prev) => (prev.some((selected) => selected._id === item._id) ? prev : [...prev, item]));
+    setSelectedItems((prev) => addItemToSelection(item, prev));
     setInventoryMenuOpen(false);
   }
 
   function removeInventoryItem(itemId) {
-    setSelectedItems((prev) => prev.filter((item) => item._id !== itemId));
+    setSelectedItems((prev) => removeItemFromSelection(itemId, prev));
   }
 
   return (

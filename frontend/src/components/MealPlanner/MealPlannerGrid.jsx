@@ -1,7 +1,5 @@
 import MealColumn from './MealColumn.jsx';
-
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const MEAL_SLOTS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+import { DAYS, MEAL_SLOTS } from './constants.js';
 
 export default function MealPlannerGrid({ mealPlans, onOpenModal }) {
   return (

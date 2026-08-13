@@ -1,3 +1,6 @@
+import { SUGGESTIONS_DISPLAY_LIMIT } from './constants.js';
+import { extractIngredientsFromRecipe } from './mealPlannerUtils.js';
+
 export default function RecipeSuggestions({
   suggestions,
   selectedRecipe,
@@ -18,7 +21,7 @@ export default function RecipeSuggestions({
             <span className="text-[11px] text-on-surface-variant">Choose one to plan quickly.</span>
           </div>
           <div className="mt-4 grid gap-3">
-            {suggestions.slice(0, 4).map((recipe) => (
+            {suggestions.slice(0, SUGGESTIONS_DISPLAY_LIMIT).map((recipe) => (
               <button
                 key={recipe.idMeal}
                 type="button"
@@ -60,17 +63,11 @@ export default function RecipeSuggestions({
                 <div className="grid gap-2">
                   <p className="text-sm font-semibold">Ingredients</p>
                   <div className="flex flex-wrap gap-2">
-                    {Array.from({ length: 20 }, (_, index) => index + 1)
-                      .map((num) => ({
-                        ingredient: recipeDetails[`strIngredient${num}`],
-                        measure: recipeDetails[`strMeasure${num}`],
-                      }))
-                      .filter((item) => item.ingredient)
-                      .map((item, idx) => (
-                        <span key={idx} className="rounded-full bg-surface-container-high px-3 py-1 text-[11px] text-on-surface-variant">
-                          {item.ingredient.trim()} {item.measure?.trim()}
-                        </span>
-                      ))}
+                    {extractIngredientsFromRecipe(recipeDetails).map((item, idx) => (
+                      <span key={idx} className="rounded-full bg-surface-container-high px-3 py-1 text-[11px] text-on-surface-variant">
+                        {item.ingredient.trim()} {item.measure?.trim()}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </>
