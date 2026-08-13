@@ -1,13 +1,20 @@
 import React from 'react';
-const MealColumn = ({ day, slot, meal, onOpen }) => {
+const MealColumn = ({ day, slot, meal, onOpen, onCopyToNextWeek }) => {
   const hasMeal = Boolean(meal);
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between px-1">
         <span className="text-[10px] font-bold text-on-surface-variant opacity-60 uppercase tracking-tighter">{slot}</span>
-        <button type="button" onClick={onOpen} aria-label={`${hasMeal ? 'Edit' : 'Add'} ${slot} meal for ${day}`} className="material-symbols-outlined text-xs text-primary hover:bg-primary-container p-1 rounded-full active:scale-90 transition-all">
-          add
-        </button>
+        <div className="flex items-center gap-1">
+          {hasMeal && (
+            <button type="button" onClick={onCopyToNextWeek} aria-label={`Copy ${meal.mealName} to next week`} className="material-symbols-outlined text-xs text-primary hover:bg-primary-container p-1 rounded-full transition-all">
+              content_copy
+            </button>
+          )}
+          <button type="button" onClick={onOpen} aria-label={`${hasMeal ? 'Edit' : 'Add'} ${slot} meal for ${day}`} className="material-symbols-outlined text-xs text-primary hover:bg-primary-container p-1 rounded-full active:scale-90 transition-all">
+            add
+          </button>
+        </div>
       </div>
       {hasMeal ? (
         <button type="button" onClick={onOpen} aria-label={`Edit ${meal.mealName}, ${slot} on ${day}`} className="meal-card-hover group bg-white border border-outline-variant rounded-xl p-0 cursor-pointer transition-all text-left overflow-hidden">

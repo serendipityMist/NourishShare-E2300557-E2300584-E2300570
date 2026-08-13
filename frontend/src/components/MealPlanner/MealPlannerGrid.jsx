@@ -2,10 +2,7 @@ import React from 'react';
 import MealColumn from './MealColumn.jsx';
 import { DAYS, MEAL_SLOTS } from './constants.js';
 
-const MealPlannerGrid = ({ mealPlans, onOpenModal }) => {
-  const weekStart = new Date();
-  const mondayOffset = (weekStart.getDay() + 6) % 7;
-  weekStart.setDate(weekStart.getDate() - mondayOffset);
+const MealPlannerGrid = ({ mealPlans, onOpenModal, onCopyToNextWeek, weekStart }) => {
 
   return (
     <section aria-label="Weekly meal plan" className="overflow-x-auto custom-scrollbar bg-surface-bright kraft-texture rounded-[32px] p-4">
@@ -30,6 +27,7 @@ const MealPlannerGrid = ({ mealPlans, onOpenModal }) => {
                     slot={slot}
                     meal={meal}
                     onOpen={() => onOpenModal(day, slot, meal?._id ?? null)}
+                    onCopyToNextWeek={meal ? () => onCopyToNextWeek(meal) : undefined}
                   />
                 );
               })}
