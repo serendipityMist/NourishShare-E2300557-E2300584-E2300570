@@ -1,4 +1,5 @@
-import { DEFAULT_REMINDER_TIME } from './constants.js';
+import { DEFAULT_REMINDER_TIME, REMINDER_OPTIONS } from './constants.ts';
+import type { InventoryItem, MealPayload, MealSlot, Recipe, ValidationResult, WeekDay } from './types.ts';
 
 /**
  * Initialize modal state with default values or existing meal data
@@ -50,7 +51,7 @@ export const getDefaultModalState = () => ({
 /**
  * Validate dish name input
  */
-export const validateDishName = (dishName) => {
+export const validateDishName = (dishName: string): ValidationResult => {
   const trimmed = dishName.trim();
   if (!trimmed) {
     return { isValid: false, message: 'Please enter a dish name.' };
@@ -61,6 +62,16 @@ export const validateDishName = (dishName) => {
   if (trimmed.length > 100) {
     return { isValid: false, message: 'Dish name must be less than 100 characters.' };
   }
+  if (!/^[\p{L}\p{N}][\p{L}\p{N}\s&',.()/-]*$/u.test(trimmed)) {
+    return { isValid: false, message: 'Dish name contains unsupported characters.' };
+  }
+  return { isValid: true, message: '' };
+};
+
+export const validateReminderTime = (reminderTime: string): ValidationResult => {
+  if (!REMINDER_OPTIONS.some((option) => option.value === reminderTime)) {
+    return { isValid: false, message: 'Please choose a valid reminder time.' };
+  }
   return { isValid: true, message: '' };
 };
 
@@ -68,16 +79,10 @@ export const validateDishName = (dishName) => {
  * Build meal plan payload for API submission
  */
 export const buildMealPayload = (
-  dishName,
-  selectedItems,
-  mealDay,
-  currentSlot,
-  reminderActive,
-  reminderTime,
-  selectedRecipe = null,
-  recipeDetails = null,
-  suggestions = []
-) => {
+  dishName: string, selectedItems: InventoryItem[], mealDay: WeekDay, currentSlot: MealSlot,
+  reminderActive: boolean, reminderTime: string, selectedRecipe: Recipe | null = null,
+  recipeDetails: Recipe | null = null, suggestions: Recipe[] = []
+): MealPayload => {
   return {
     foodIds: selectedItems.map((item) => item._id),
     day: mealDay,

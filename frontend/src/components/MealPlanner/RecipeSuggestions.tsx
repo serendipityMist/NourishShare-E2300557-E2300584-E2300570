@@ -1,6 +1,7 @@
 import React from 'react';
-import { SUGGESTIONS_DISPLAY_LIMIT } from './constants.js';
-import { extractIngredientsFromRecipe } from './mealPlannerUtils.js';
+import { SUGGESTIONS_DISPLAY_LIMIT } from './constants.ts';
+import { extractIngredientsFromRecipe } from './mealPlannerUtils.ts';
+import type { Recipe } from './types.ts';
 
 const RecipeSuggestions = ({
   suggestions,
@@ -9,7 +10,7 @@ const RecipeSuggestions = ({
   loadingSuggestions,
   recipeLoading,
   onRecipeSelect,
-}) => {
+}: { suggestions: Recipe[]; selectedRecipe: Recipe | null; recipeDetails: Recipe | null; loadingSuggestions: boolean; recipeLoading: boolean; onRecipeSelect: (recipe: Recipe) => void }) => {
   return (
     <>
       {suggestions.length > 0 && (
@@ -53,7 +54,7 @@ const RecipeSuggestions = ({
           </div>
           <div className="mt-4 grid gap-4">
             {recipeLoading ? (
-              <div className="text-sm text-on-surface-variant">Loading recipe details…</div>
+              <div role="status" className="text-sm text-on-surface-variant">Loading recipe details…</div>
             ) : recipeDetails ? (
               <>
                 <div className="grid gap-2">
