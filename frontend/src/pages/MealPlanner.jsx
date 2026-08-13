@@ -15,6 +15,12 @@ import {
   getErrorMessage,
 } from '../components/MealPlanner/mealPlannerUtils.js';
 import { useMealPlannerState, ACTIONS } from '../components/MealPlanner/mealPlannerReducer.js';
+import {
+  retryWithBackoff,
+  getDetailedErrorMessage,
+  isRetryableError,
+  logError,
+} from '../components/MealPlanner/errorHandling.js';
 
 export default function MealPlanner() {
   const { activeItems } = useInventory();
@@ -47,10 +53,18 @@ export default function MealPlanner() {
 
   async function fetchMealPlans() {
     try {
-      const response = await mealPlanService.getMyMealPlans();
+      const response = await retryWithBackoff(
+        () => mealPlanService.getMyMealPlans(),
+        3,
+        1000
+      );
       dispatch({ type: ACTIONS.SET_MEAL_PLANS, payload: response.data.data.mealPlans || [] });
     } catch (error) {
-      console.error('Failed to fetch meal plans', error);
+      const errorMsg = getDetailedErrorMessage(error, 'Failed to load meal plans. Please try again.');
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: errorMsg });
+      logError(error, 'fetchMealPlans');
+      // Still set empty meal plans to allow UI to render
+      dispatch({ type: ACTIONS.SET_MEAL_PLANS, payload: [] });
     }
   }
 
@@ -70,7 +84,13 @@ export default function MealPlanner() {
 
     try {
       const responses = await Promise.all(
-        searchTerms.map((term) => recipeService.findByIngredient(term).catch(() => ({ data: { meals: [] } })))
+        searchTerms.map((term) =>
+          retryWithBackoff(
+            () => recipeService.findByIngredient(term),
+            2,
+            800
+          ).catch(() => ({ data: { meals: [] } }))
+        )
       );
 
       const mealsByTerm = responses.map((response) => response.data.meals || []);
@@ -98,13 +118,23 @@ export default function MealPlanner() {
       }
 
       if (!finalMeals.length && modal.dishName.trim()) {
-        const response = await recipeService.searchByName(modal.dishName.trim());
-        finalMeals = response.data.meals || [];
+        try {
+          const response = await retryWithBackoff(
+            () => recipeService.searchByName(modal.dishName.trim()),
+            2,
+            800
+          );
+          finalMeals = response.data.meals || [];
+        } catch (searchError) {
+          logError(searchError, 'fetchRecipeSuggestions - dish name search');
+          // Silently fail on dish name search, just show what we have
+        }
       }
 
       dispatch({ type: ACTIONS.SET_SUGGESTIONS, payload: finalMeals.slice(0, MAX_SUGGESTIONS) });
     } catch (error) {
-      console.error('Recipe suggestions failed', error);
+      logError(error, 'fetchRecipeSuggestions');
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: 'Unable to load recipe suggestions. Try selecting different ingredients.' });
       dispatch({ type: ACTIONS.SET_SUGGESTIONS, payload: [] });
     } finally {
       dispatch({ type: ACTIONS.SET_LOADING_SUGGESTIONS, payload: false });
@@ -116,11 +146,20 @@ export default function MealPlanner() {
     dispatch({ type: ACTIONS.SET_RECIPE_LOADING, payload: true });
 
     try {
-      const response = await recipeService.getById(recipeData.idMeal);
+      const response = await retryWithBackoff(
+        () => recipeService.getById(recipeData.idMeal),
+        2,
+        800
+      );
       const details = response.data.meals?.[0] || null;
+      if (!details) {
+        throw new Error('Recipe details not found');
+      }
       dispatch({ type: ACTIONS.SET_RECIPE_DETAILS, payload: details });
     } catch (error) {
-      console.error('Failed to load recipe details', error);
+      const errorMsg = getDetailedErrorMessage(error, 'Failed to load recipe details. Please try again.');
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: errorMsg });
+      logError(error, 'openRecipe');
       dispatch({ type: ACTIONS.SET_RECIPE_DETAILS, payload: null });
     } finally {
       dispatch({ type: ACTIONS.SET_RECIPE_LOADING, payload: false });
@@ -183,8 +222,16 @@ export default function MealPlanner() {
     );
 
     try {
-      const response = await mealPlanService.addMealPlanEntry(payload);
+      const response = await retryWithBackoff(
+        () => mealPlanService.addMealPlanEntry(payload),
+        3,
+        1000
+      );
       const savedPlan = response.data.data.mealPlan;
+
+      if (!savedPlan._id) {
+        throw new Error('Invalid meal plan response from server');
+      }
 
       if (modal.currentEditingId) {
         dispatch({ type: ACTIONS.UPDATE_MEAL_PLAN, payload: savedPlan });
@@ -192,28 +239,50 @@ export default function MealPlanner() {
         dispatch({ type: ACTIONS.ADD_MEAL_PLAN, payload: savedPlan });
       }
 
-      dispatch({ type: ACTIONS.SHOW_TOAST, payload: `Saved ${savedPlan.mealName}` });
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: `✓ Saved ${savedPlan.mealName}` });
       handleCloseModal();
     } catch (error) {
-      console.error('Failed to save meal plan', error);
-      dispatch({ type: ACTIONS.SHOW_TOAST, payload: getErrorMessage(error, 'Unable to save meal plan') });
+      const errorMsg = getDetailedErrorMessage(
+        error,
+        'Unable to save meal plan. Please try again.'
+      );
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: errorMsg });
+      logError(error, 'handleSaveMeal');
+
+      // Store error state for potential retry
+      if (isRetryableError(error)) {
+        dispatch({ type: ACTIONS.SET_ERROR, payload: { message: errorMsg, context: 'save', payload } });
+      }
     }
   }, [modal, recipe, dispatch, handleCloseModal]);
 
   const handleDeleteMeal = useCallback(async () => {
     if (!modal.currentEditingId) {
-      dispatch({ type: ACTIONS.SHOW_TOAST, payload: 'Unable to remove meal' });
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: 'Unable to remove meal - no meal selected' });
       return;
     }
 
     try {
-      await mealPlanService.deleteMealPlanEntry(modal.currentEditingId);
+      await retryWithBackoff(
+        () => mealPlanService.deleteMealPlanEntry(modal.currentEditingId),
+        3,
+        1000
+      );
       dispatch({ type: ACTIONS.DELETE_MEAL_PLAN, payload: modal.currentEditingId });
-      dispatch({ type: ACTIONS.SHOW_TOAST, payload: 'Meal removed' });
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: '✓ Meal removed' });
       handleCloseModal();
     } catch (error) {
-      console.error('Failed to delete meal plan', error);
-      dispatch({ type: ACTIONS.SHOW_TOAST, payload: getErrorMessage(error, 'Unable to delete meal plan') });
+      const errorMsg = getDetailedErrorMessage(
+        error,
+        'Unable to delete meal plan. Please try again.'
+      );
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: errorMsg });
+      logError(error, 'handleDeleteMeal');
+
+      // Store error state for potential retry
+      if (isRetryableError(error)) {
+        dispatch({ type: ACTIONS.SET_ERROR, payload: { message: errorMsg, context: 'delete', mealId: modal.currentEditingId } });
+      }
     }
   }, [modal.currentEditingId, dispatch, handleCloseModal]);
 
