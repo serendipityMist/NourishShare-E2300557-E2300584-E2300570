@@ -25,6 +25,8 @@ const initialUIState = {
   toastOpen: false,
   toastMessage: '',
   expiringItems: [],
+  error: null,
+  errorRetryCount: 0,
 };
 
 export const initialState = {
@@ -61,6 +63,9 @@ export const ACTIONS = {
   SHOW_TOAST: 'SHOW_TOAST',
   HIDE_TOAST: 'HIDE_TOAST',
   SET_EXPIRING_ITEMS: 'SET_EXPIRING_ITEMS',
+  SET_ERROR: 'SET_ERROR',
+  CLEAR_ERROR: 'CLEAR_ERROR',
+  RESET_ERROR_RETRY: 'RESET_ERROR_RETRY',
 
   // Meal plans actions
   SET_MEAL_PLANS: 'SET_MEAL_PLANS',
@@ -226,6 +231,28 @@ export function mealPlannerReducer(state, action) {
       return {
         ...state,
         ui: { ...state.ui, expiringItems: action.payload },
+      };
+
+    case ACTIONS.SET_ERROR:
+      return {
+        ...state,
+        ui: {
+          ...state.ui,
+          error: action.payload,
+          errorRetryCount: 0,
+        },
+      };
+
+    case ACTIONS.CLEAR_ERROR:
+      return {
+        ...state,
+        ui: { ...state.ui, error: null },
+      };
+
+    case ACTIONS.RESET_ERROR_RETRY:
+      return {
+        ...state,
+        ui: { ...state.ui, errorRetryCount: (state.ui.errorRetryCount || 0) + 1 },
       };
 
     // Meal plans actions
