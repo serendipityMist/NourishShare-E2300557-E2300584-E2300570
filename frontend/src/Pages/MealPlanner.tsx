@@ -1,26 +1,27 @@
 import { useEffect, useMemo, useCallback } from 'react';
 import AppLayout from '../components/layout/AppLayout.jsx';
-import MealPlannerHeader from '../components/MealPlanner/MealPlannerHeader.jsx';
-import MealPlannerGrid from '../components/MealPlanner/MealPlannerGrid.jsx';
-import MealPlannerModal from '../components/MealPlanner/MealPlannerModal.jsx';
+import MealPlannerHeader from '../components/MealPlanner/MealPlannerHeader.tsx';
+import MealPlannerGrid from '../components/MealPlanner/MealPlannerGrid.tsx';
+import MealPlannerModal from '../components/MealPlanner/MealPlannerModal.tsx';
 import { useInventory } from '../hooks/useInventory.js';
-import { mealPlanService } from '../services/mealPlanService.js';
-import { recipeService } from '../services/recipeService.js';
+import { mealPlanService } from '../services/mealPlanService.ts';
+import { recipeService } from '../services/recipeService.ts';
 import { getExpiryStatus, daysUntil } from '../utils/dateUtils.js';
-import { TOTAL_WEEKLY_SLOTS, MAX_SUGGESTIONS } from '../components/MealPlanner/constants.js';
+import { TOTAL_WEEKLY_SLOTS, MAX_SUGGESTIONS } from '../components/MealPlanner/constants.ts';
 import {
   validateDishName,
+  validateReminderTime,
   buildMealPayload,
   calculateCompletionPercentage,
   getErrorMessage,
-} from '../components/MealPlanner/mealPlannerUtils.js';
-import { useMealPlannerState, ACTIONS } from '../components/MealPlanner/mealPlannerReducer.js';
+} from '../components/MealPlanner/mealPlannerUtils.ts';
+import { useMealPlannerState, ACTIONS } from '../components/MealPlanner/mealPlannerReducer.ts';
 import {
   retryWithBackoff,
   getDetailedErrorMessage,
   isRetryableError,
   logError,
-} from '../components/MealPlanner/errorHandling.js';
+} from '../components/MealPlanner/errorHandling.ts';
 
 export default function MealPlanner() {
   const { activeItems } = useInventory();
@@ -52,6 +53,7 @@ export default function MealPlanner() {
   }, [activeItems, dispatch]);
 
   async function fetchMealPlans() {
+    dispatch({ type: ACTIONS.SET_LOADING_MEAL_PLANS, payload: true });
     try {
       const response = await retryWithBackoff(
         () => mealPlanService.getMyMealPlans(),
@@ -65,6 +67,8 @@ export default function MealPlanner() {
       logError(error, 'fetchMealPlans');
       // Still set empty meal plans to allow UI to render
       dispatch({ type: ACTIONS.SET_MEAL_PLANS, payload: [] });
+    } finally {
+      dispatch({ type: ACTIONS.SET_LOADING_MEAL_PLANS, payload: false });
     }
   }
 
@@ -83,6 +87,7 @@ export default function MealPlanner() {
     dispatch({ type: ACTIONS.SET_LOADING_SUGGESTIONS, payload: true });
 
     try {
+      dispatch({ type: ACTIONS.SET_SAVING_MEAL, payload: true });
       const responses = await Promise.all(
         searchTerms.map((term) =>
           retryWithBackoff(
@@ -208,6 +213,11 @@ export default function MealPlanner() {
       dispatch({ type: ACTIONS.SHOW_TOAST, payload: validation.message });
       return;
     }
+    const reminderValidation = validateReminderTime(modal.reminderTime);
+    if (!reminderValidation.isValid) {
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: reminderValidation.message });
+      return;
+    }
 
     const payload = buildMealPayload(
       modal.dishName,
@@ -253,6 +263,8 @@ export default function MealPlanner() {
       if (isRetryableError(error)) {
         dispatch({ type: ACTIONS.SET_ERROR, payload: { message: errorMsg, context: 'save', payload } });
       }
+    } finally {
+      dispatch({ type: ACTIONS.SET_SAVING_MEAL, payload: false });
     }
   }, [modal, recipe, dispatch, handleCloseModal]);
 
@@ -263,6 +275,7 @@ export default function MealPlanner() {
     }
 
     try {
+      dispatch({ type: ACTIONS.SET_DELETING_MEAL, payload: true });
       await retryWithBackoff(
         () => mealPlanService.deleteMealPlanEntry(modal.currentEditingId),
         3,
@@ -283,6 +296,8 @@ export default function MealPlanner() {
       if (isRetryableError(error)) {
         dispatch({ type: ACTIONS.SET_ERROR, payload: { message: errorMsg, context: 'delete', mealId: modal.currentEditingId } });
       }
+    } finally {
+      dispatch({ type: ACTIONS.SET_DELETING_MEAL, payload: false });
     }
   }, [modal.currentEditingId, dispatch, handleCloseModal]);
 
@@ -310,6 +325,10 @@ export default function MealPlanner() {
         mealPlans={filteredMeals}
         onOpenModal={handleOpenModal}
       />
+
+      {ui.loadingMealPlans && (
+        <p role="status" aria-live="polite" className="mt-4 text-sm text-on-surface-variant">Loading your meal plan…</p>
+      )}
 
       <MealPlannerModal
         isOpen={modal.modalOpen}
@@ -340,6 +359,8 @@ export default function MealPlanner() {
         onSave={handleSaveMeal}
         onDelete={handleDeleteMeal}
         onClose={handleCloseModal}
+        saving={ui.savingMeal}
+        deleting={ui.deletingMeal}
       />
 
       {ui.toastOpen && (

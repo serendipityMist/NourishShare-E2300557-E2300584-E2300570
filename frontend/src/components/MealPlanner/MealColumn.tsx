@@ -1,6 +1,8 @@
 import React from 'react';
+import type { MealPlan, MealSlot, WeekDay } from './types.ts';
 
-const MealColumn = ({ day, slot, meal, onOpen }) => {
+interface Props { day: WeekDay; slot: MealSlot; meal?: MealPlan; onOpen: () => void; }
+const MealColumn = ({ day, slot, meal, onOpen }: Props) => {
   const hasMeal = Boolean(meal);
   return (
     <div className="flex flex-col gap-2">

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import RecipeSuggestions from './RecipeSuggestions.jsx';
-import { DAYS, MEAL_SLOTS, REMINDER_OPTIONS } from './constants.js';
+import RecipeSuggestions from './RecipeSuggestions.tsx';
+import { DAYS, MEAL_SLOTS, REMINDER_OPTIONS } from './constants.ts';
 import { getExpiryStatus } from '../../utils/dateUtils.js';
+import type { InventoryItem, MealSlot, Recipe, WeekDay } from './types.ts';
 
 const MealPlannerModal = ({
   isOpen,
@@ -32,6 +33,8 @@ const MealPlannerModal = ({
   onSave,
   onDelete,
   onClose,
+  saving,
+  deleting,
 }) => {
   const dialogRef = useRef(null);
   const closeButtonRef = useRef(null);
@@ -174,7 +177,7 @@ const MealPlannerModal = ({
                         role="option"
                         aria-selected={selectedItems.some((selectedItem) => selectedItem._id === item._id)}
                         key={item._id}
-                        className="px-3 py-2 text-xs hover:bg-surface-container cursor-pointer"
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-surface-container cursor-pointer"
                         onClick={() => onAddInventoryItem(item)}
                       >
                         {item.name}
@@ -254,16 +257,17 @@ const MealPlannerModal = ({
               type="button"
               className={`text-error text-xs font-bold flex items-center gap-1 hover:bg-error-container/20 px-3 py-2 rounded-lg transition-colors ${isEditing ? 'visible' : 'invisible'}`}
               onClick={onDelete}
+              disabled={deleting || saving}
             >
               <span className="material-symbols-outlined text-sm">delete</span>
               Delete Meal
             </button>
             <div className="flex items-center gap-4">
-              <button type="button" className="px-6 py-2.5 rounded-lg border border-outline text-on-surface-variant text-xs font-bold hover:bg-surface-variant transition-all" onClick={onClose}>
+              <button type="button" disabled={saving || deleting} className="px-6 py-2.5 rounded-lg border border-outline text-on-surface-variant text-xs font-bold hover:bg-surface-variant transition-all" onClick={onClose}>
                 Cancel
               </button>
-              <button type="button" className="px-8 py-2.5 rounded-lg bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition-all shadow-md" onClick={onSave}>
-                Save Changes
+              <button type="button" disabled={saving || deleting} aria-busy={saving} className="px-8 py-2.5 rounded-lg bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition-all shadow-md disabled:opacity-60" onClick={onSave}>
+                {saving ? 'Saving…' : 'Save Changes'}
               </button>
             </div>
           </div>
