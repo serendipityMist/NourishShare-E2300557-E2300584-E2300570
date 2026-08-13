@@ -1,7 +1,6 @@
 import React from 'react';
-import { SUGGESTIONS_DISPLAY_LIMIT } from './constants.ts';
-import { extractIngredientsFromRecipe } from './mealPlannerUtils.ts';
-import type { Recipe } from './types.ts';
+import { SUGGESTIONS_DISPLAY_LIMIT } from './constants.js';
+import { extractIngredientsFromRecipe } from './mealPlannerUtils.js';
 
 const RecipeSuggestions = ({
   suggestions,
@@ -10,7 +9,7 @@ const RecipeSuggestions = ({
   loadingSuggestions,
   recipeLoading,
   onRecipeSelect,
-}: { suggestions: Recipe[]; selectedRecipe: Recipe | null; recipeDetails: Recipe | null; loadingSuggestions: boolean; recipeLoading: boolean; onRecipeSelect: (recipe: Recipe) => void }) => {
+}) => {
   return (
     <>
       {suggestions.length > 0 && (
