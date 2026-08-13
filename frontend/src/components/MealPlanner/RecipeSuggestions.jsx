@@ -13,11 +13,11 @@ const RecipeSuggestions = ({
   return (
     <>
       {suggestions.length > 0 && (
-        <div className="rounded-3xl bg-surface-container p-4 border border-outline-variant">
+        <section aria-labelledby="recipe-suggestions-title" className="rounded-3xl bg-surface-container p-4 border border-outline-variant">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-on-surface-variant">Recipe ideas</p>
-              <p className="font-semibold">Suggested recipes</p>
+              <p id="recipe-suggestions-title" className="font-semibold">Suggested recipes</p>
             </div>
             <span className="text-[11px] text-on-surface-variant">Choose one to plan quickly.</span>
           </div>
@@ -39,15 +39,15 @@ const RecipeSuggestions = ({
               </button>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {selectedRecipe && (
-        <div className="rounded-3xl bg-surface-container p-4 border border-outline-variant">
+        <section aria-labelledby="recipe-details-title" aria-busy={recipeLoading} className="rounded-3xl bg-surface-container p-4 border border-outline-variant">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-on-surface-variant">Recipe details</p>
-              <p className="font-semibold">{selectedRecipe.strMeal}</p>
+              <p id="recipe-details-title" className="font-semibold">{selectedRecipe.strMeal}</p>
             </div>
             <span className="text-[11px] text-on-surface-variant">Steps and ingredients provided by TheMealDB.</span>
           </div>
@@ -76,7 +76,7 @@ const RecipeSuggestions = ({
               <p className="text-sm text-on-surface-variant">Select a recipe to see instructions.</p>
             )}
           </div>
-        </div>
+        </section>
       )}
     </>
   );

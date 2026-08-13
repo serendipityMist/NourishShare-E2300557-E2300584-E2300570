@@ -6,12 +6,12 @@ const MealColumn = ({ day, slot, meal, onOpen }) => {
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between px-1">
         <span className="text-[10px] font-bold text-on-surface-variant opacity-60 uppercase tracking-tighter">{slot}</span>
-        <button type="button" onClick={onOpen} className="material-symbols-outlined text-xs text-primary hover:bg-primary-container p-1 rounded-full active:scale-90 transition-all">
+        <button type="button" onClick={onOpen} aria-label={`${hasMeal ? 'Edit' : 'Add'} ${slot} meal for ${day}`} className="material-symbols-outlined text-xs text-primary hover:bg-primary-container p-1 rounded-full active:scale-90 transition-all">
           add
         </button>
       </div>
       {hasMeal ? (
-        <button type="button" onClick={onOpen} className="meal-card-hover group bg-white border border-outline-variant rounded-xl p-0 cursor-pointer transition-all text-left overflow-hidden">
+        <button type="button" onClick={onOpen} aria-label={`Edit ${meal.mealName}, ${slot} on ${day}`} className="meal-card-hover group bg-white border border-outline-variant rounded-xl p-0 cursor-pointer transition-all text-left overflow-hidden">
           <div className="relative h-28 overflow-hidden bg-surface-container-high">
             {meal.mealImage ? (
               <img
@@ -63,7 +63,7 @@ const MealColumn = ({ day, slot, meal, onOpen }) => {
           </div>
         </button>
       ) : (
-        <button type="button" onClick={onOpen} className="border-2 border-dashed border-outline-variant/30 rounded-xl h-24 flex items-center justify-center group hover:border-primary/50 transition-colors cursor-pointer">
+        <button type="button" onClick={onOpen} aria-label={`Plan a ${slot} meal for ${day}`} className="border-2 border-dashed border-outline-variant/30 rounded-xl h-24 flex items-center justify-center group hover:border-primary/50 transition-colors cursor-pointer">
           <span className="text-xs font-bold uppercase text-on-surface-variant/40 group-hover:text-primary/60">Plan a Meal</span>
         </button>
       )}

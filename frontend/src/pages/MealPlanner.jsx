@@ -343,8 +343,8 @@ export default function MealPlanner() {
       />
 
       {ui.toastOpen && (
-        <div className="fixed bottom-6 right-6 bg-inverse-surface text-inverse-on-surface px-6 py-3 rounded-lg shadow-xl flex items-center gap-3 z-[100]">
-          <span className="material-symbols-outlined text-primary-fixed">timer</span>
+        <div role="status" aria-live="polite" className="fixed bottom-6 right-6 bg-inverse-surface text-inverse-on-surface px-6 py-3 rounded-lg shadow-xl flex items-center gap-3 z-[100]">
+          <span aria-hidden="true" className="material-symbols-outlined text-primary-fixed">timer</span>
           <span>{ui.toastMessage}</span>
         </div>
       )}
