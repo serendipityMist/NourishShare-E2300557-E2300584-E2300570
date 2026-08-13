@@ -9,6 +9,9 @@ export const mealPlanService = {
   addMealPlanEntry: (payload) =>
     api.post("/meal-plans", payload),
 
+  updateMealPlanEntry: (id, payload) =>
+    api.patch(`/meal-plans/${id}`, payload),
+
   deleteMealPlanEntry: (id) =>
     api.delete(`/meal-plans/${id}`),
 };
