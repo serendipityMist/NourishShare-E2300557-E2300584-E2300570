@@ -1,4 +1,6 @@
-export default function MealColumn({ day, slot, meal, onOpen }) {
+import React from 'react';
+
+const MealColumn = ({ day, slot, meal, onOpen }) => {
   const hasMeal = Boolean(meal);
   return (
     <div className="flex flex-col gap-2">
@@ -67,4 +69,6 @@ export default function MealColumn({ day, slot, meal, onOpen }) {
       )}
     </div>
   );
-}
+};
+
+export default React.memo(MealColumn);

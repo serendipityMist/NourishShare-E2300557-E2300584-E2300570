@@ -1,9 +1,9 @@
-import { useCallback } from 'react';
+import React, { useCallback } from 'react';
 import RecipeSuggestions from './RecipeSuggestions.jsx';
 import { DAYS, MEAL_SLOTS, REMINDER_OPTIONS } from './constants.js';
 import { getExpiryStatus } from '../../utils/dateUtils.js';
 
-export default function MealPlannerModal({
+const MealPlannerModal = ({
   isOpen,
   isEditing,
   mealDay,
@@ -32,7 +32,7 @@ export default function MealPlannerModal({
   onSave,
   onDelete,
   onClose,
-}) {
+}) => {
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center modal-backdrop transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
       <div className={`bg-white rounded-xl shadow-2xl max-w-4xl w-full flex overflow-hidden border border-outline-variant transform transition-transform duration-300 ${isOpen ? 'scale-100' : 'scale-95'}`}>
@@ -220,4 +220,6 @@ export default function MealPlannerModal({
       </div>
     </div>
   );
-}
+};
+
+export default React.memo(MealPlannerModal);

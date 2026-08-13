@@ -1,14 +1,15 @@
+import React from 'react';
 import { SUGGESTIONS_DISPLAY_LIMIT } from './constants.js';
 import { extractIngredientsFromRecipe } from './mealPlannerUtils.js';
 
-export default function RecipeSuggestions({
+const RecipeSuggestions = ({
   suggestions,
   selectedRecipe,
   recipeDetails,
   loadingSuggestions,
   recipeLoading,
   onRecipeSelect,
-}) {
+}) => {
   return (
     <>
       {suggestions.length > 0 && (
@@ -79,4 +80,6 @@ export default function RecipeSuggestions({
       )}
     </>
   );
-}
+};
+
+export default React.memo(RecipeSuggestions);

@@ -1,7 +1,8 @@
+import React from 'react';
 import MealColumn from './MealColumn.jsx';
 import { DAYS, MEAL_SLOTS } from './constants.js';
 
-export default function MealPlannerGrid({ mealPlans, onOpenModal }) {
+const MealPlannerGrid = ({ mealPlans, onOpenModal }) => {
   return (
     <section className="overflow-x-auto custom-scrollbar bg-surface-bright kraft-texture rounded-[32px] p-4">
       <div className="flex h-full min-w-max gap-4" id="calendar-grid">
@@ -30,4 +31,6 @@ export default function MealPlannerGrid({ mealPlans, onOpenModal }) {
       </div>
     </section>
   );
-}
+};
+
+export default React.memo(MealPlannerGrid);
