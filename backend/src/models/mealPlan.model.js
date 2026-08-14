@@ -31,6 +31,10 @@ const mealPlanSchema = new mongoose.Schema({
         type: Number,
         default: 60
     },
+    reminderSentAt: {
+        type: Date,
+        default: null
+    },
     mealImage: {
         type: String,
         trim: true,

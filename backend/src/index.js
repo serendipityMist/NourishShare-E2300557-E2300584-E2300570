@@ -3,6 +3,7 @@ dotenv.config();
 import { connectDB } from "./db/index.js";
 import { app } from "./app.js";
 import { scheduleExpiryNotifications } from "./utils/expiryNotifier.js";
+import { scheduleMealReminders } from "./utils/mealReminderNotifier.js";
 
 
 connectDB()
@@ -12,6 +13,7 @@ connectDB()
     })
     // start daily expiry notifications
     scheduleExpiryNotifications();
+    scheduleMealReminders();
 })
 .catch((err)=>{
     console.log(`MongoDB Connection error ${err}`);

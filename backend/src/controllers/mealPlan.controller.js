@@ -15,6 +15,21 @@ const DAYS = [
     "Sunday"
 ];
 
+const MEAL_TYPES = ["Breakfast", "Lunch", "Dinner", "Snack"];
+
+async function resolveFoods(foodIds, userId) {
+    if (!Array.isArray(foodIds) || !foodIds.length) return [];
+    const uniqueFoodIds = [...new Set(foodIds.map(String))];
+    const foods = await Food.find({ _id: { $in: uniqueFoodIds }, owner: userId });
+    if (foods.length !== uniqueFoodIds.length) {
+        throw new ApiError(404, "One or more food items were not found");
+    }
+    if (foods.some((item) => item.status === "Used" || item.status === "Donated")) {
+        throw new ApiError(400, "One or more selected food items cannot be planned for a meal");
+    }
+    return foods;
+}
+
 function getWeekStartDate(date = new Date()) {
     const current = new Date(date);
     const day = current.getDay();
@@ -27,32 +42,18 @@ function getWeekStartDate(date = new Date()) {
 const addMealPlanEntry = asyncHandler(async (req, res) => {
     const { foodIds, day, mealType, mealName, weekStartDate, reminderActive, reminderTime, mealImage } = req.body;
 
-    if (!day || !mealType) {
-        throw new ApiError(400, "Day and meal type are required");
+    if (!day || !mealType || !mealName?.trim()) {
+        throw new ApiError(400, "Day, meal type, and meal name are required");
     }
 
     if (!DAYS.includes(day)) {
         throw new ApiError(400, "Invalid day selected");
     }
-
-    let foods = [];
-    if (Array.isArray(foodIds) && foodIds.length > 0) {
-        foods = await Food.find({
-            _id: { $in: foodIds },
-            owner: req.user._id
-        });
-
-        if (foods.length !== foodIds.length) {
-            throw new ApiError(404, "One or more food items were not found");
-        }
-
-        const invalidFood = foods.find(
-            (item) => item.status === "Used" || item.status === "Donated"
-        );
-        if (invalidFood) {
-            throw new ApiError(400, "One or more selected food items cannot be planned for a meal");
-        }
+    if (!MEAL_TYPES.includes(mealType)) {
+        throw new ApiError(400, "Invalid meal type selected");
     }
+
+    const foods = await resolveFoods(foodIds, req.user._id);
 
     const entry = await MealPlan.create({
         weekStartDate: weekStartDate ? new Date(weekStartDate) : getWeekStartDate(),
@@ -61,7 +62,7 @@ const addMealPlanEntry = asyncHandler(async (req, res) => {
         reminderActive: Boolean(reminderActive),
         reminderTime: Number(reminderTime) || 60,
         mealImage: mealImage || '',
-        mealName: mealName || foods.map((item) => item.name).join(', ') || 'Custom meal',
+        mealName: mealName.trim(),
         user: req.user._id,
         food: foods.map((item) => item._id)
     });
@@ -81,18 +82,6 @@ const addMealPlanEntry = asyncHandler(async (req, res) => {
             populate: { path: "category" }
         });
 
-    if (entry.reminderActive) {
-        const title = `Meal reminder set for ${entry.mealType} on ${entry.day}`;
-        const description = `Your meal "${entry.mealName}" is scheduled for ${entry.day} (${entry.mealType}). You will be reminded ${entry.reminderTime} minutes before.`;
-
-        await Notification.create({
-            owner: req.user._id,
-            title,
-            description,
-            notificationType: "Meal"
-        });
-    }
-
     return res.status(201).json(
         new ApiResponse(
             201,
@@ -100,6 +89,30 @@ const addMealPlanEntry = asyncHandler(async (req, res) => {
             "Meal plan entry created successfully"
         )
     );
+});
+
+const updateMealPlanEntry = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { foodIds, day, mealType, mealName, reminderActive, reminderTime, mealImage } = req.body;
+    if (!DAYS.includes(day) || !MEAL_TYPES.includes(mealType) || !mealName?.trim()) {
+        throw new ApiError(400, "Valid day, meal type, and meal name are required");
+    }
+
+    const entry = await MealPlan.findOne({ _id: id, user: req.user._id });
+    if (!entry) throw new ApiError(404, "Meal plan entry not found");
+
+    const foods = await resolveFoods(foodIds, req.user._id);
+    const nextFoodIds = foods.map((food) => food._id);
+    const previousFoodIds = entry.food.map(String);
+
+    await Food.updateMany({ _id: { $in: previousFoodIds.filter((foodId) => !nextFoodIds.some((nextId) => String(nextId) === foodId)) }, status: "Reserved" }, { $set: { status: "Available" } });
+    await Food.updateMany({ _id: { $in: nextFoodIds } }, { $set: { status: "Reserved" } });
+
+    entry.set({ day, mealType, mealName: mealName.trim(), mealImage: mealImage || '', reminderActive: Boolean(reminderActive), reminderTime: Number(reminderTime) || 60, reminderSentAt: null, food: nextFoodIds });
+    await entry.save();
+    await entry.populate({ path: "food", populate: { path: "category" } });
+
+    return res.status(200).json(new ApiResponse(200, { mealPlan: entry }, "Meal plan entry updated successfully"));
 });
 
 const getMyMealPlans = asyncHandler(async (req, res) => {
@@ -144,6 +157,7 @@ const deleteMealPlanEntry = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Meal plan entry not found");
     }
 
+    await Food.updateMany({ _id: { $in: mealPlan.food }, status: "Reserved" }, { $set: { status: "Available" } });
     await mealPlan.deleteOne();
 
     return res.status(200).json(
@@ -153,6 +167,7 @@ const deleteMealPlanEntry = asyncHandler(async (req, res) => {
 
 export {
     addMealPlanEntry,
+    updateMealPlanEntry,
     getMyMealPlans,
     deleteMealPlanEntry
 };
