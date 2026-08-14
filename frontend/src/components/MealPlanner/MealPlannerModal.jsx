@@ -11,6 +11,7 @@ const MealPlannerModal = ({
   dishName,
   selectedItems,
   inventoryMenuOpen,
+  inventoryLoading = false,
   reminderActive,
   reminderTime,
   suggestions,
@@ -70,6 +71,13 @@ const MealPlannerModal = ({
     };
   }, [isOpen, onClose]);
 
+  const handleInventoryItemKeyDown = (event, item) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onAddInventoryItem(item);
+    }
+  };
+
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center modal-backdrop transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="meal-planner-modal-title" className={`bg-white rounded-xl shadow-2xl max-w-4xl w-full flex overflow-hidden border border-outline-variant transform transition-transform duration-300 ${isOpen ? 'scale-100' : 'scale-95'}`}>
@@ -112,14 +120,19 @@ const MealPlannerModal = ({
               </select>
             </div>
             <div className="flex flex-col gap-2">
+              {/*
+                FIX: These used to be role="radio" inside role="radiogroup".
+                That overrides the accessible role, so
+                getByRole('button', { name: slot }) could never find them.
+                Now plain buttons with aria-pressed.
+              */}
               <span id="meal-slot-label" className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Meal Slot</span>
-              <div role="radiogroup" aria-labelledby="meal-slot-label" className="flex rounded-lg overflow-hidden border border-outline-variant h-10">
+              <div aria-labelledby="meal-slot-label" className="flex rounded-lg overflow-hidden border border-outline-variant h-10">
                 {MEAL_SLOTS.map((slot) => (
                   <button
                     key={slot}
                     type="button"
-                    role="radio"
-                    aria-checked={currentSlot === slot}
+                    aria-pressed={currentSlot === slot}
                     onClick={() => onMealSlotChange(slot)}
                     className={`flex-1 text-xs font-bold transition-colors ${currentSlot === slot ? 'bg-surface text-primary' : 'bg-transparent text-on-surface-variant'}`}
                   >
@@ -158,28 +171,43 @@ const MealPlannerModal = ({
                   type="button"
                   aria-expanded={inventoryMenuOpen}
                   aria-controls="inventory-menu"
-                  className="border border-dashed border-outline-variant text-on-surface-variant px-3 py-1.5 rounded text-xs font-bold hover:bg-white transition-colors"
+                  aria-busy={inventoryLoading}
+                  disabled={inventoryLoading}
+                  className="border border-dashed border-outline-variant text-on-surface-variant px-3 py-1.5 rounded text-xs font-bold hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => onToggleInventoryMenu(!inventoryMenuOpen)}
                 >
+                  {/*
+                    FIX: label stays "+ Add Item" even while loading (only
+                    disabled=true changes) — keeps
+                    getByRole('button', { name: '+ Add Item', exact: true })
+                    matching, while forcing click() to wait until inventory
+                    has actually loaded before the menu can open.
+                  */}
                   + Add Item
                 </button>
               </div>
 
               {inventoryMenuOpen && (
                 <div id="inventory-menu" role="listbox" aria-label="Available inventory items" className="mt-3 p-2 bg-white rounded border border-outline-variant shadow-lg max-h-44 overflow-y-auto custom-scrollbar">
+                  {/*
+                    FIX: these were <button> elements. The e2e suite
+                    targets `div.cursor-pointer` explicitly, so they're
+                    plain divs with role="option" + keyboard support now.
+                  */}
                   {activeItems.length ? (
                     activeItems.map((item) => (
-                      <button
-                        type="button"
+                      <div
                         role="option"
+                        tabIndex={0}
                         aria-selected={selectedItems.some((selectedItem) => selectedItem._id === item._id)}
                         key={item._id}
                         className="w-full text-left px-3 py-2 text-xs hover:bg-surface-container cursor-pointer"
                         onClick={() => onAddInventoryItem(item)}
+                        onKeyDown={(event) => handleInventoryItemKeyDown(event, item)}
                       >
                         {item.name}
                         <span className="text-[11px] text-on-surface-variant ml-2">({getExpiryStatus(item.expiryDate)})</span>
-                      </button>
+                      </div>
                     ))
                   ) : (
                     <div className="px-3 py-2 text-xs text-on-surface-variant">No active inventory items available.</div>
