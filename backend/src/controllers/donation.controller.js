@@ -360,9 +360,6 @@ const getDonationDetails = asyncHandler(async (req, res) => {
 
 });
 
-// =====================================================
-// Get Donations Claimed by Current User
-// =====================================================
 
 const getMyClaimedDonations = asyncHandler(async (req, res) => {
 
