@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import { useInventory } from '../hooks/useInventory.js';
 import { mealPlanService } from '../services/mealPlanService.js';
@@ -30,6 +30,10 @@ export default function MealPlanner() {
   const [recipeLoading, setRecipeLoading] = useState(false);
   const [expiringItems, setExpiringItems] = useState([]);
 
+  // FIX: guards the initial fetchMealPlans() GET from overwriting
+  // state with stale data if a save/delete already completed first.
+  const hasMutatedRef = useRef(false);
+
   useEffect(() => {
     if (!toastOpen) return;
     const timer = window.setTimeout(() => setToastOpen(false), 4000);
@@ -52,6 +56,12 @@ export default function MealPlanner() {
   async function fetchMealPlans() {
     try {
       const response = await mealPlanService.getMyMealPlans();
+
+      // FIX: if a save or delete has already landed since this GET
+      // was fired, don't clobber that fresher state with this stale
+      // snapshot from before the mutation happened.
+      if (hasMutatedRef.current) return;
+
       setMealPlans(response.data.data.mealPlans || []);
     } catch (error) {
       console.error('Failed to fetch meal plans', error);
@@ -192,6 +202,11 @@ export default function MealPlanner() {
       const response = await mealPlanService.addMealPlanEntry(payload);
       const savedPlan = response.data.data.mealPlan;
 
+      // FIX: mark that a mutation has happened so the initial
+      // fetchMealPlans() GET (if still in flight) won't overwrite
+      // this with stale pre-save data.
+      hasMutatedRef.current = true;
+
       setMealPlans((prev) => {
         if (currentEditingId) {
           return prev.map((meal) => (meal._id === currentEditingId ? savedPlan : meal));
@@ -218,6 +233,10 @@ export default function MealPlanner() {
 
     try {
       await mealPlanService.deleteMealPlanEntry(currentEditingId);
+
+      // FIX: same guard as saveMeal() — a delete counts as a mutation too.
+      hasMutatedRef.current = true;
+
       setMealPlans((prev) => prev.filter((meal) => meal._id !== currentEditingId));
       setToastMessage('Meal removed');
       setToastOpen(true);

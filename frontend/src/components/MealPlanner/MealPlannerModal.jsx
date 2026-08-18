@@ -1,304 +1,438 @@
-import React, { useEffect, useRef } from 'react';
-import RecipeSuggestions from './RecipeSuggestions.jsx';
-import { DAYS, MEAL_SLOTS, REMINDER_OPTIONS } from './constants.js';
-import { getExpiryStatus } from '../../utils/dateUtils.js';
+import { useEffect, useMemo, useCallback, useState, useRef } from 'react';
+import AppLayout from '../components/layout/AppLayout.jsx';
+import MealPlannerHeader from '../components/MealPlanner/MealPlannerHeader.jsx';
+import MealPlannerGrid from '../components/MealPlanner/MealPlannerGrid.jsx';
+import MealPlannerModal from '../components/MealPlanner/MealPlannerModal.jsx';
+import { useInventory } from '../hooks/useInventory.js';
+import { mealPlanService } from '../services/mealPlanService.js';
+import { recipeService } from '../services/recipeService.js';
+import { getExpiryStatus, daysUntil } from '../utils/dateUtils.js';
+import { TOTAL_WEEKLY_SLOTS, MAX_SUGGESTIONS } from '../components/MealPlanner/constants.js';
+import {
+  validateDishName,
+  buildMealPayload,
+  calculateCompletionPercentage,
+  getErrorMessage,
+} from '../components/MealPlanner/mealPlannerUtils.js';
+import { useMealPlannerState, ACTIONS } from '../components/MealPlanner/mealPlannerReducer.js';
+import {
+  retryWithBackoff,
+  getDetailedErrorMessage,
+  isRetryableError,
+  logError,
+} from '../components/MealPlanner/errorHandling.js';
 
-const MealPlannerModal = ({
-  isOpen,
-  isEditing,
-  mealDay,
-  currentSlot,
-  dishName,
-  selectedItems,
-  inventoryMenuOpen,
-  inventoryLoading = false,
-  reminderActive,
-  reminderTime,
-  suggestions,
-  selectedRecipe,
-  recipeDetails,
-  loadingSuggestions,
-  recipeLoading,
-  activeItems,
-  onMealDayChange,
-  onMealSlotChange,
-  onDishNameChange,
-  onFetchRecipeSuggestions,
-  onRecipeSelect,
-  onAddInventoryItem,
-  onRemoveInventoryItem,
-  onToggleInventoryMenu,
-  onToggleReminder,
-  onReminderTimeChange,
-  onSave,
-  onDelete,
-  onClose,
-}) => {
-  const dialogRef = useRef(null);
-  const closeButtonRef = useRef(null);
-  const previousFocusRef = useRef(null);
+function getMonday(date = new Date()) {
+  const monday = new Date(date);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return monday;
+}
 
+function formatWeekStartDate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+export default function MealPlanner() {
+  const { activeItems, loading: inventoryLoading } = useInventory();
+  const [state, dispatch] = useMealPlannerState();
+  const [weekStart, setWeekStart] = useState(getMonday);
+
+  const { modal, recipe, ui, mealPlans } = state;
+
+  // FIX: race-condition guard. The initial GET (fetchMealPlans, fired on
+  // mount) can still be in flight when a save/update/delete happens. If
+  // that GET resolves *after* the local mutation, its stale payload
+  // would blow away SET_MEAL_PLANS over the freshly-added/updated/deleted
+  // entry — this was causing "Saved meal appears in the weekly meal
+  // planner" to fail deterministically, and "delete"/"edit" to fail
+  // intermittently depending on which request won the race.
+  //
+  // Every fetch captures the current requestId. Every local mutation
+  // bumps the ref, invalidating any fetch that started earlier. A fetch
+  // whose captured id no longer matches the ref when it resolves is
+  // discarded instead of applied.
+  const mealPlanRequestIdRef = useRef(0);
+
+  const invalidatePendingMealPlanFetch = useCallback(() => {
+    mealPlanRequestIdRef.current += 1;
+  }, []);
+
+  // Toast auto-close effect
   useEffect(() => {
-    if (!isOpen) return undefined;
-    previousFocusRef.current = document.activeElement;
-    closeButtonRef.current?.focus();
+    if (!ui.toastOpen) return;
+    const timer = window.setTimeout(() => {
+      dispatch({ type: ACTIONS.HIDE_TOAST });
+    }, 4000);
+    return () => window.clearTimeout(timer);
+  }, [ui.toastOpen, dispatch]);
 
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onClose();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const focusable = dialogRef.current?.querySelectorAll(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  // Fetch meal plans on mount
+  useEffect(() => {
+    fetchMealPlans();
+  }, [weekStart]);
+
+  // Set expiring items when active items change
+  useEffect(() => {
+    const expiring = activeItems
+      .filter((item) => getExpiryStatus(item.expiryDate) === 'expiring')
+      .sort((a, b) => daysUntil(a.expiryDate) - daysUntil(b.expiryDate))
+      .slice(0, 5);
+    dispatch({ type: ACTIONS.SET_EXPIRING_ITEMS, payload: expiring });
+  }, [activeItems, dispatch]);
+
+  async function fetchMealPlans() {
+    const requestId = ++mealPlanRequestIdRef.current;
+    try {
+      const response = await retryWithBackoff(
+        () => mealPlanService.getMyMealPlans(formatWeekStartDate(weekStart)),
+        3,
+        1000
       );
-      if (!focusable?.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      previousFocusRef.current?.focus?.();
-    };
-  }, [isOpen, onClose]);
-
-  const handleInventoryItemKeyDown = (event, item) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      onAddInventoryItem(item);
+      // A local mutation happened while this GET was in flight — its
+      // data is stale relative to what the user just did, so discard it.
+      if (requestId !== mealPlanRequestIdRef.current) return;
+      dispatch({ type: ACTIONS.SET_MEAL_PLANS, payload: response.data.data.mealPlans || [] });
+    } catch (error) {
+      if (requestId !== mealPlanRequestIdRef.current) return;
+      const errorMsg = getDetailedErrorMessage(error, 'Failed to load meal plans. Please try again.');
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: errorMsg });
+      logError(error, 'fetchMealPlans');
+      // Still set empty meal plans to allow UI to render
+      dispatch({ type: ACTIONS.SET_MEAL_PLANS, payload: [] });
     }
-  };
+  }
+
+  const fetchRecipeSuggestions = useCallback(async () => {
+    const selectedIngredientTokens = modal.selectedItems
+      .flatMap((item) => item.name.split(/[,/()\s-]+/))
+      .map((token) => token.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (!selectedIngredientTokens.length) {
+      dispatch({ type: ACTIONS.SET_SUGGESTIONS, payload: [] });
+      return;
+    }
+
+    const searchTerms = Array.from(new Set(selectedIngredientTokens));
+    dispatch({ type: ACTIONS.SET_LOADING_SUGGESTIONS, payload: true });
+
+    try {
+      const responses = await Promise.all(
+        searchTerms.map((term) =>
+          retryWithBackoff(
+            () => recipeService.findByIngredient(term),
+            2,
+            800
+          ).catch(() => ({ data: { meals: [] } }))
+        )
+      );
+
+      const mealsByTerm = responses.map((response) => response.data.meals || []);
+      const intersection = mealsByTerm.reduce((common, meals) => {
+        if (!common) return meals;
+        return common.filter((meal) => meals.some((next) => next.idMeal === meal.idMeal));
+      }, null);
+
+      const matchedMeals = (intersection && intersection.length ? intersection : []) || [];
+      let finalMeals = matchedMeals;
+
+      if (!finalMeals.length) {
+        const mealMap = {};
+        mealsByTerm.flat().forEach((recipe) => {
+          if (!recipe.idMeal) return;
+          if (!mealMap[recipe.idMeal]) {
+            mealMap[recipe.idMeal] = { ...recipe, matchCount: 0 };
+          }
+          mealMap[recipe.idMeal].matchCount += 1;
+        });
+
+        finalMeals = Object.values(mealMap)
+          .sort((a, b) => b.matchCount - a.matchCount)
+          .slice(0, MAX_SUGGESTIONS);
+      }
+
+      if (!finalMeals.length && modal.dishName.trim()) {
+        try {
+          const response = await retryWithBackoff(
+            () => recipeService.searchByName(modal.dishName.trim()),
+            2,
+            800
+          );
+          finalMeals = response.data.meals || [];
+        } catch (searchError) {
+          logError(searchError, 'fetchRecipeSuggestions - dish name search');
+        }
+      }
+
+      dispatch({ type: ACTIONS.SET_SUGGESTIONS, payload: finalMeals.slice(0, MAX_SUGGESTIONS) });
+    } catch (error) {
+      logError(error, 'fetchRecipeSuggestions');
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: 'Unable to load recipe suggestions. Try selecting different ingredients.' });
+      dispatch({ type: ACTIONS.SET_SUGGESTIONS, payload: [] });
+    } finally {
+      dispatch({ type: ACTIONS.SET_LOADING_SUGGESTIONS, payload: false });
+    }
+  }, [modal.selectedItems, modal.dishName, dispatch]);
+
+  const openRecipe = useCallback(async (recipeData) => {
+    dispatch({ type: ACTIONS.SELECT_RECIPE, payload: recipeData });
+    dispatch({ type: ACTIONS.SET_RECIPE_LOADING, payload: true });
+
+    try {
+      const response = await retryWithBackoff(
+        () => recipeService.getById(recipeData.idMeal),
+        2,
+        800
+      );
+      const details = response.data.meals?.[0] || null;
+      if (!details) {
+        throw new Error('Recipe details not found');
+      }
+      dispatch({ type: ACTIONS.SET_RECIPE_DETAILS, payload: details });
+    } catch (error) {
+      const errorMsg = getDetailedErrorMessage(error, 'Failed to load recipe details. Please try again.');
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: errorMsg });
+      logError(error, 'openRecipe');
+      dispatch({ type: ACTIONS.SET_RECIPE_DETAILS, payload: null });
+    } finally {
+      dispatch({ type: ACTIONS.SET_RECIPE_LOADING, payload: false });
+    }
+  }, [dispatch]);
+
+  const filteredMeals = useMemo(() => {
+    if (!modal.dishName.trim()) return mealPlans;
+    const searchTerm = modal.dishName.toLowerCase();
+    return mealPlans.filter((meal) =>
+      meal.mealName.toLowerCase().includes(searchTerm)
+    );
+  }, [mealPlans, modal.dishName]);
+
+  const completion = useMemo(
+    () => calculateCompletionPercentage(filteredMeals.length, TOTAL_WEEKLY_SLOTS),
+    [filteredMeals.length]
+  );
+
+  const handleOpenModal = useCallback((day, slot, id = null) => {
+    const existing = mealPlans.find((meal) => meal._id === id);
+    dispatch({
+      type: ACTIONS.OPEN_MODAL,
+      payload: {
+        editingId: id,
+        day,
+        slot,
+        dishName: existing?.mealName || '',
+        selectedItems: existing?.food || [],
+        reminderActive: existing?.reminderActive || false,
+        reminderTime: String(existing?.reminderTime) || '60',
+      },
+    });
+  }, [mealPlans, dispatch]);
+
+  const handleCloseModal = useCallback(() => {
+    dispatch({ type: ACTIONS.CLOSE_MODAL });
+  }, [dispatch]);
+
+  const handleSaveMeal = useCallback(async () => {
+    const validation = validateDishName(modal.dishName);
+    if (!validation.isValid) {
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: validation.message });
+      return;
+    }
+
+    const payload = buildMealPayload(
+      modal.dishName,
+      modal.selectedItems,
+      modal.mealDay,
+      modal.currentSlot,
+      modal.reminderActive,
+      modal.reminderTime,
+      recipe.selectedRecipe,
+      recipe.recipeDetails,
+      recipe.suggestions
+    );
+    payload.weekStartDate = formatWeekStartDate(weekStart);
+
+    try {
+      const response = await retryWithBackoff(
+        () => modal.currentEditingId
+          ? mealPlanService.updateMealPlanEntry(modal.currentEditingId, payload)
+          : mealPlanService.addMealPlanEntry(payload),
+        3,
+        1000
+      );
+      const savedPlan = response.data.data.mealPlan;
+
+      if (!savedPlan._id) {
+        throw new Error('Invalid meal plan response from server');
+      }
+
+      // FIX: discard any older in-flight GET before applying this local
+      // mutation, so it can't be clobbered when that GET resolves later.
+      invalidatePendingMealPlanFetch();
+
+      if (modal.currentEditingId) {
+        dispatch({ type: ACTIONS.UPDATE_MEAL_PLAN, payload: savedPlan });
+      } else {
+        dispatch({ type: ACTIONS.ADD_MEAL_PLAN, payload: savedPlan });
+      }
+
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: `Saved ${savedPlan.mealName}` });
+      handleCloseModal();
+    } catch (error) {
+      const errorMsg = getDetailedErrorMessage(
+        error,
+        'Unable to save meal plan. Please try again.'
+      );
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: errorMsg });
+      logError(error, 'handleSaveMeal');
+
+      if (isRetryableError(error)) {
+        dispatch({ type: ACTIONS.SET_ERROR, payload: { message: errorMsg, context: 'save', payload } });
+      }
+    }
+  }, [modal, recipe, weekStart, dispatch, handleCloseModal, invalidatePendingMealPlanFetch]);
+
+  const handleCopyToNextWeek = useCallback(async (meal) => {
+    const nextWeek = new Date(weekStart);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const payload = {
+      foodIds: (meal.food || []).map((item) => item._id),
+      day: meal.day,
+      mealType: meal.mealType,
+      mealName: meal.mealName,
+      mealImage: meal.mealImage || '',
+      reminderActive: meal.reminderActive || false,
+      reminderTime: Number(meal.reminderTime) || 60,
+      weekStartDate: formatWeekStartDate(nextWeek),
+    };
+
+    try {
+      await retryWithBackoff(() => mealPlanService.addMealPlanEntry(payload), 3, 1000);
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: `Copied ${meal.mealName} to next week` });
+    } catch (error) {
+      const errorMsg = getDetailedErrorMessage(error, 'Unable to copy meal to next week.');
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: errorMsg });
+      logError(error, 'handleCopyToNextWeek');
+    }
+  }, [weekStart, dispatch]);
+
+  const changeWeek = useCallback((offset) => {
+    setWeekStart((currentWeek) => {
+      const nextWeek = new Date(currentWeek);
+      nextWeek.setDate(nextWeek.getDate() + offset * 7);
+      return nextWeek;
+    });
+  }, []);
+
+  const weekLabel = useMemo(() => {
+    const endOfWeek = new Date(weekStart);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+    const formatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+    return `${formatter.format(weekStart)} – ${formatter.format(endOfWeek)}`;
+  }, [weekStart]);
+
+  const handleDeleteMeal = useCallback(async () => {
+    if (!modal.currentEditingId) {
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: 'Unable to remove meal - no meal selected' });
+      return;
+    }
+
+    try {
+      await retryWithBackoff(
+        () => mealPlanService.deleteMealPlanEntry(modal.currentEditingId),
+        3,
+        1000
+      );
+
+      // FIX: same stale-fetch guard as save.
+      invalidatePendingMealPlanFetch();
+
+      dispatch({ type: ACTIONS.DELETE_MEAL_PLAN, payload: modal.currentEditingId });
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: 'Meal removed' });
+      handleCloseModal();
+    } catch (error) {
+      const errorMsg = getDetailedErrorMessage(
+        error,
+        'Unable to delete meal plan. Please try again.'
+      );
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: errorMsg });
+      logError(error, 'handleDeleteMeal');
+
+      if (isRetryableError(error)) {
+        dispatch({ type: ACTIONS.SET_ERROR, payload: { message: errorMsg, context: 'delete', mealId: modal.currentEditingId } });
+      }
+    }
+  }, [modal.currentEditingId, dispatch, handleCloseModal, invalidatePendingMealPlanFetch]);
+
+  const handleAddInventoryItem = useCallback((item) => {
+    dispatch({ type: ACTIONS.ADD_ITEM, payload: item });
+  }, [dispatch]);
+
+  const handleRemoveInventoryItem = useCallback((itemId) => {
+    dispatch({ type: ACTIONS.REMOVE_ITEM, payload: itemId });
+  }, [dispatch]);
+
+  const handleToggleReminder = useCallback(() => {
+    dispatch({ type: ACTIONS.SET_REMINDER_ACTIVE, payload: !modal.reminderActive });
+  }, [modal.reminderActive, dispatch]);
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center modal-backdrop transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="meal-planner-modal-title" className={`bg-white rounded-xl shadow-2xl max-w-4xl w-full flex overflow-hidden border border-outline-variant transform transition-transform duration-300 ${isOpen ? 'scale-100' : 'scale-95'}`}>
-        <div className="w-1/3 relative bg-surface-container overflow-hidden hidden md:block">
-          <img
-            className="w-full h-full object-cover"
-            src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=1200&q=80"
-            alt="Meal planning"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent"></div>
-          <div className="absolute bottom-6 left-6 text-white pr-6">
-            <p className="text-xs uppercase tracking-widest opacity-80 mb-1">Pantry First</p>
-            <h3 className="text-2xl font-bold leading-tight">Plan using items ready to cook</h3>
-          </div>
+    <AppLayout title="Meal Planner">
+      <MealPlannerHeader
+        search={modal.dishName}
+        onSearchChange={(value) => dispatch({ type: ACTIONS.SET_DISH_NAME, payload: value })}
+        expiringItems={ui.expiringItems}
+        weekLabel={weekLabel}
+        onPreviousWeek={() => changeWeek(-1)}
+        onNextWeek={() => changeWeek(1)}
+      />
+
+      <MealPlannerGrid
+        mealPlans={filteredMeals}
+        onOpenModal={handleOpenModal}
+        onCopyToNextWeek={handleCopyToNextWeek}
+        weekStart={weekStart}
+      />
+
+      <MealPlannerModal
+        isOpen={modal.modalOpen}
+        isEditing={Boolean(modal.currentEditingId)}
+        mealDay={modal.mealDay}
+        currentSlot={modal.currentSlot}
+        dishName={modal.dishName}
+        selectedItems={modal.selectedItems}
+        inventoryMenuOpen={modal.inventoryMenuOpen}
+        inventoryLoading={inventoryLoading}
+        reminderActive={modal.reminderActive}
+        reminderTime={modal.reminderTime}
+        suggestions={recipe.suggestions}
+        selectedRecipe={recipe.selectedRecipe}
+        recipeDetails={recipe.recipeDetails}
+        loadingSuggestions={recipe.loadingSuggestions}
+        recipeLoading={recipe.recipeLoading}
+        activeItems={activeItems}
+        onMealDayChange={(value) => dispatch({ type: ACTIONS.SET_MEAL_DAY, payload: value })}
+        onMealSlotChange={(value) => dispatch({ type: ACTIONS.SET_MEAL_SLOT, payload: value })}
+        onDishNameChange={(value) => dispatch({ type: ACTIONS.SET_DISH_NAME, payload: value })}
+        onFetchRecipeSuggestions={fetchRecipeSuggestions}
+        onRecipeSelect={openRecipe}
+        onAddInventoryItem={handleAddInventoryItem}
+        onRemoveInventoryItem={handleRemoveInventoryItem}
+        onToggleInventoryMenu={(value) => dispatch({ type: ACTIONS.TOGGLE_INVENTORY_MENU, payload: value })}
+        onToggleReminder={handleToggleReminder}
+        onReminderTimeChange={(value) => dispatch({ type: ACTIONS.SET_REMINDER_TIME, payload: value })}
+        onSave={handleSaveMeal}
+        onDelete={handleDeleteMeal}
+        onClose={handleCloseModal}
+      />
+
+      {ui.toastOpen && (
+        <div role="status" aria-live="polite" className="fixed bottom-6 right-6 bg-inverse-surface text-inverse-on-surface px-6 py-3 rounded-lg shadow-xl flex items-center gap-3 z-[100]">
+          <span aria-hidden="true" className="material-symbols-outlined text-primary-fixed">timer</span>
+          <span>{ui.toastMessage}</span>
         </div>
-
-        <div className="flex-1 p-8 flex flex-col gap-6 bg-surface-bright kraft-texture overflow-y-auto max-h-[90vh]">
-          <div className="flex justify-between items-start">
-            <div className="flex flex-col gap-1">
-              <span className="bg-secondary-fixed text-on-secondary-fixed-variant px-3 py-0.5 rounded-full text-xs font-bold self-start">{isEditing ? 'EDIT MEAL' : 'PLAN MEAL'}</span>
-              <h2 id="meal-planner-modal-title" className="text-2xl font-bold text-on-surface">{isEditing ? 'Edit Meal' : 'Plan a Meal'}</h2>
-            </div>
-            <button ref={closeButtonRef} type="button" aria-label="Close meal planner" className="material-symbols-outlined text-on-surface-variant hover:text-error transition-colors p-2" onClick={onClose}>
-              close
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="meal-day" className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Scheduled Day</label>
-              <select
-                id="meal-day"
-                value={mealDay}
-                onChange={(e) => onMealDayChange(e.target.value)}
-                className="rounded-lg border-outline-variant bg-surface-container-low text-sm focus:ring-primary focus:border-primary w-full px-4 py-2.5"
-              >
-                {DAYS.map((day) => (
-                  <option key={day} value={day}>{day}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-2">
-              {/*
-                FIX: These used to be role="radio" inside role="radiogroup".
-                That overrides the accessible role, so
-                getByRole('button', { name: slot }) could never find them.
-                Now plain buttons with aria-pressed.
-              */}
-              <span id="meal-slot-label" className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Meal Slot</span>
-              <div aria-labelledby="meal-slot-label" className="flex rounded-lg overflow-hidden border border-outline-variant h-10">
-                {MEAL_SLOTS.map((slot) => (
-                  <button
-                    key={slot}
-                    type="button"
-                    aria-pressed={currentSlot === slot}
-                    onClick={() => onMealSlotChange(slot)}
-                    className={`flex-1 text-xs font-bold transition-colors ${currentSlot === slot ? 'bg-surface text-primary' : 'bg-transparent text-on-surface-variant'}`}
-                  >
-                    {slot}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label htmlFor="dish-name" className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Dish Name</label>
-            <input
-              id="dish-name"
-              value={dishName}
-              onChange={(e) => onDishNameChange(e.target.value)}
-              className="rounded-lg border-outline-variant bg-surface-container-low text-sm focus:ring-primary focus:border-primary w-full px-4 py-2.5"
-              placeholder="Enter dish name..."
-              type="text"
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <span id="inventory-items-label" className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Required Inventory Items</span>
-            <div className="p-4 bg-surface-container rounded-lg border border-outline-variant/50">
-              <div className="flex flex-wrap gap-2" id="inventoryTags" aria-labelledby="inventory-items-label">
-                {selectedItems.map((item) => (
-                  <span key={item._id} className="flex items-center gap-1.5 bg-primary-fixed text-on-primary-fixed-variant px-3 py-1.5 rounded-sm text-xs font-bold">
-                    {item.name}
-                    <button type="button" aria-label={`Remove ${item.name}`} className="material-symbols-outlined text-[14px]" onClick={() => onRemoveInventoryItem(item._id)}>
-                      close
-                    </button>
-                  </span>
-                ))}
-                <button
-                  type="button"
-                  aria-expanded={inventoryMenuOpen}
-                  aria-controls="inventory-menu"
-                  aria-busy={inventoryLoading}
-                  disabled={inventoryLoading}
-                  className="border border-dashed border-outline-variant text-on-surface-variant px-3 py-1.5 rounded text-xs font-bold hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => onToggleInventoryMenu(!inventoryMenuOpen)}
-                >
-                  {/*
-                    FIX: label stays "+ Add Item" even while loading (only
-                    disabled=true changes) — keeps
-                    getByRole('button', { name: '+ Add Item', exact: true })
-                    matching, while forcing click() to wait until inventory
-                    has actually loaded before the menu can open.
-                  */}
-                  + Add Item
-                </button>
-              </div>
-
-              {inventoryMenuOpen && (
-                <div id="inventory-menu" role="listbox" aria-label="Available inventory items" className="mt-3 p-2 bg-white rounded border border-outline-variant shadow-lg max-h-44 overflow-y-auto custom-scrollbar">
-                  {/*
-                    FIX: these were <button> elements. The e2e suite
-                    targets `div.cursor-pointer` explicitly, so they're
-                    plain divs with role="option" + keyboard support now.
-                  */}
-                  {activeItems.length ? (
-                    activeItems.map((item) => (
-                      <div
-                        role="option"
-                        tabIndex={0}
-                        aria-selected={selectedItems.some((selectedItem) => selectedItem._id === item._id)}
-                        key={item._id}
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-surface-container cursor-pointer"
-                        onClick={() => onAddInventoryItem(item)}
-                        onKeyDown={(event) => handleInventoryItemKeyDown(event, item)}
-                      >
-                        {item.name}
-                        <span className="text-[11px] text-on-surface-variant ml-2">({getExpiryStatus(item.expiryDate)})</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="px-3 py-2 text-xs text-on-surface-variant">No active inventory items available.</div>
-                  )}
-                </div>
-              )}
-
-              <div className="mt-3 flex flex-col gap-2">
-                <button
-                  type="button"
-                  className="px-4 py-2 rounded-lg bg-secondary text-on-secondary text-xs font-bold hover:bg-secondary-container transition-all"
-                  onClick={onFetchRecipeSuggestions}
-                  disabled={!selectedItems.length}
-                  aria-busy={loadingSuggestions}
-                >
-                  {loadingSuggestions ? 'Finding recipes…' : 'Suggest recipes from selected ingredients'}
-                </button>
-                <p className="text-[10px] text-on-surface-variant/60 italic">
-                  Select expiring ingredients and get free recipe suggestions.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <RecipeSuggestions
-            suggestions={suggestions}
-            selectedRecipe={selectedRecipe}
-            recipeDetails={recipeDetails}
-            loadingSuggestions={loadingSuggestions}
-            recipeLoading={recipeLoading}
-            onRecipeSelect={onRecipeSelect}
-          />
-
-          <div className="bg-surface-container-low p-4 rounded-lg flex items-center justify-between border border-outline-variant/30">
-            <div className="flex items-center gap-4">
-              <span className="material-symbols-outlined text-on-surface-variant p-2 bg-surface-variant rounded-full" id="reminderIcon">
-                notifications
-              </span>
-              <div>
-                <p className="text-xs font-bold">Meal Prep Reminder</p>
-                <p className="text-[11px] text-on-surface-variant">Notify me before starting</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <select
-                aria-label="Reminder time"
-                value={reminderTime}
-                onChange={(e) => onReminderTimeChange(e.target.value)}
-                className="bg-transparent border-none focus:ring-0 text-xs pr-8"
-              >
-                {REMINDER_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={reminderActive}
-                aria-label="Meal prep reminder"
-                className={`w-10 h-6 rounded-full relative flex items-center px-1 transition-colors ${reminderActive ? 'bg-primary' : 'bg-outline-variant'}`}
-                onClick={onToggleReminder}
-              >
-                <span className={`w-4 h-4 bg-white rounded-full transition-transform ${reminderActive ? 'translate-x-4' : ''}`} />
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-auto flex items-center justify-between pt-6 border-t border-outline-variant">
-            <button
-              type="button"
-              className={`text-error text-xs font-bold flex items-center gap-1 hover:bg-error-container/20 px-3 py-2 rounded-lg transition-colors ${isEditing ? 'visible' : 'invisible'}`}
-              onClick={onDelete}
-            >
-              <span className="material-symbols-outlined text-sm">delete</span>
-              Delete Meal
-            </button>
-            <div className="flex items-center gap-4">
-              <button type="button" className="px-6 py-2.5 rounded-lg border border-outline text-on-surface-variant text-xs font-bold hover:bg-surface-variant transition-all" onClick={onClose}>
-                Cancel
-              </button>
-              <button type="button" className="px-8 py-2.5 rounded-lg bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition-all shadow-md" onClick={onSave}>
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      )}
+    </AppLayout>
   );
-};
-
-export default React.memo(MealPlannerModal);
+}
