@@ -74,6 +74,7 @@ export default function CreateDonationModal({
             placeholder="Street or landmark"
             value={form.pickUpLocation}
             onChange={(e) => update('pickUpLocation', e.target.value)}
+            variant="dark"
             required
           />
           <Input
@@ -81,6 +82,7 @@ export default function CreateDonationModal({
             placeholder="e.g., 5:00 PM - 8:00 PM"
             value={form.availabilityTime}
             onChange={(e) => update('availabilityTime', e.target.value)}
+            variant="dark"
             required
           />
         </div>
