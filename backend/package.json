@@ -4,9 +4,10 @@
   "description": "A backend for NourishShare Web Application",
   "main": "index.js",
   "type": "module",
-  "scripts": {
-    "dev": "nodemon src/index.js"
-  },
+ "scripts": {
+  "dev": "nodemon src/index.js",
+  "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+},
   "keywords": [
     "backend",
     "nourishShare"
@@ -25,5 +26,8 @@
     "multer": "^2.2.0",
     "nodemailer": "^9.0.3",
     "nodemon": "^3.1.14"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }

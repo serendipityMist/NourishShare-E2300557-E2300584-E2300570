@@ -122,6 +122,47 @@ function collectApiTraffic(page) {
  */
 test.describe('UC4 - Food Analytics', () => {
 
+    /**
+     * ========================================================
+     * Increase the per-test timeout for this whole file.
+     *
+     * Chart.js's ResizeObserver/requestAnimationFrame loop on
+     * the analytics canvases can keep Firefox's automation
+     * driver busy for a few extra seconds during context
+     * teardown, even after the page has navigated away (see
+     * the afterEach below). Rather than fight browser-internal
+     * cleanup timing, give teardown a larger budget than the
+     * default 60s so a slow-but-successful close doesn't get
+     * reported as a failure.
+     * ========================================================
+     */
+    test.slow();
+
+
+    /**
+     * ========================================================
+     * AFTERECH: Force navigation away from the Analytics page
+     * before context teardown.
+     *
+     * Chart.js registers a ResizeObserver on its <canvas> that
+     * drives an internal _refresh -> requestAnimationFrame loop.
+     * If a test ends while still on /analytics, that loop can
+     * still be active when Playwright tries to close the browser
+     * context, causing "Tearing down context exceeded the test
+     * timeout" (seen on Firefox/WebKit in particular).
+     *
+     * Navigating to about:blank forces React to unmount
+     * FoodAnalytics, which runs its existing useEffect cleanup
+     * (chartInstance.current?.destroy()) and disconnects the
+     * ResizeObserver before teardown begins. No app code changes
+     * needed - this only ensures the app's own cleanup gets a
+     * chance to run before the test ends.
+     * ========================================================
+     */
+    test.afterEach(async ({ page }) => {
+        await page.goto('about:blank');
+    });
+
 
     /**
      * ========================================================
@@ -1038,6 +1079,167 @@ test.describe('UC4 - Food Analytics', () => {
                 /community|pickup|claim|donation/i.test(
                     content
                 )
+            ).toBeTruthy();
+        }
+    );
+
+
+    /**
+     * ========================================================
+     * NEW NEGATIVE TEST CASES (TESTS 17-19)
+     *
+     * NOTE: There is no dedicated /analytics API endpoint - the
+     * Analytics page computes its metrics client-side from the
+     * user's food item data (the same data returned by the
+     * inventory endpoint, e.g. /food/getMyFoodItems). Test 17
+     * below therefore does NOT hit a separate "analytics" route;
+     * instead it intercepts whatever request the Analytics page
+     * actually makes for that underlying food-item data and
+     * forces it to fail, to verify the page degrades gracefully
+     * (rather than crashing to a blank/broken screen) when its
+     * data source is unavailable.
+     * ========================================================
+     */
+
+    /**
+     * ========================================================
+     * TEST 17 (NEW - NEGATIVE)
+     *
+     * If the backend request the Analytics page depends on
+     * (its food-item data source) fails, the page should show
+     * a safe/degraded state - not crash to a blank screen or
+     * throw an unhandled client-side error.
+     * ========================================================
+     */
+    test(
+        'Food Analytics handles a backend data-fetch failure gracefully',
+        async ({ page }) => {
+
+            await login(page);
+
+            // IMPORTANT: scope the intercept precisely to the real backend
+            // API host/port (localhost:8500) AND only XHR/fetch requests -
+            // NOT '**/*food*', which would also match static assets or JS
+            // chunk files served from the frontend dev server (e.g. Vite
+            // may bundle foodService.js into its own chunk such as
+            // 'foodService-x7f2a1.js'). Intercepting and corrupting a JS
+            // chunk instead of an API call would crash the whole app
+            // before it even mounts, producing a false failure that looks
+            // like a graceful-degradation bug but is actually a test bug.
+            await page.route('**/*', async route => {
+                const request = route.request();
+                const url = request.url();
+                const resourceType = request.resourceType();
+
+                const isBackendApiCall =
+                    url.startsWith('http://localhost:8500/api/v1/food/') &&
+                    (resourceType === 'xhr' || resourceType === 'fetch');
+
+                if (isBackendApiCall) {
+                    await route.fulfill({
+                        status: 500,
+                        contentType: 'application/json',
+                        body: JSON.stringify({ message: 'Simulated server error' }),
+                    });
+                    return;
+                }
+
+                // Everything else (JS/CSS chunks, other APIs, images, etc.)
+                // passes through untouched.
+                await route.continue();
+            });
+
+            await page.goto('/analytics');
+
+            await page.waitForLoadState('networkidle');
+
+            // The page itself must still render - not a blank/white screen -
+            // even though its underlying data request failed.
+            const main = page.getByRole('main');
+
+            await expect(main).toBeVisible();
+
+            // Verify no unhandled client-side crash occurred: the page
+            // should still contain SOME content (an error message, an
+            // empty state, or the static page chrome), not be empty.
+            const content = await main.innerText();
+
+            expect(content.trim().length).toBeGreaterThan(0);
+        }
+    );
+
+
+    /**
+     * ========================================================
+     * TEST 18 (NEW - NEGATIVE)
+     *
+     * Analytics page should not crash when loaded with an
+     * invalid/unsupported "period" value in the URL - it should
+     * fall back to a valid default rather than showing a blank
+     * or broken page.
+     * ========================================================
+     */
+    test(
+        'Food Analytics handles an invalid period query parameter gracefully',
+        async ({ page }) => {
+
+            await login(page);
+
+            // Deliberately malformed/unsupported period value
+            await page.goto('/analytics?period=not-a-real-period');
+
+            await page.waitForLoadState('networkidle');
+
+            const main = page.getByRole('main');
+
+            // Page must still render, not crash to a blank/error screen
+            await expect(main).toBeVisible();
+
+            const content = await main.innerText();
+
+            expect(content.trim().length).toBeGreaterThan(0);
+
+            // One of the real, default period buttons should still be visible
+            await expect(
+                main.getByRole('button', { name: '7d', exact: true })
+            ).toBeVisible();
+        }
+    );
+
+
+    /**
+     * ========================================================
+     * TEST 19 (NEW - NEGATIVE)
+     *
+     * Analytics page should not crash when loaded with an
+     * invalid/unsupported "category" value in the URL.
+     * ========================================================
+     */
+    test(
+        'Food Analytics handles an invalid category query parameter gracefully',
+        async ({ page }) => {
+
+            await login(page);
+
+            await page.goto('/analytics?category=not-a-real-category');
+
+            await page.waitForLoadState('networkidle');
+
+            const main = page.getByRole('main');
+
+            await expect(main).toBeVisible();
+
+            // The category dropdown should still show the real, valid options
+            const categoryFilter = main.locator('select').first();
+
+            await expect(categoryFilter).toBeVisible();
+
+            const optionTexts = await categoryFilter
+                .locator('option')
+                .allTextContents();
+
+            expect(
+                optionTexts.some(text => /all categories/i.test(text))
             ).toBeTruthy();
         }
     );
