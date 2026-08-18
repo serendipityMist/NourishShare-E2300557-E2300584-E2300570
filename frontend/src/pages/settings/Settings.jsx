@@ -410,9 +410,9 @@ export default function Settings() {
                       })
                     }
                   >
-                    <option value="Public">Public — visible to everyone</option>
-                    <option value="Community">Community — visible to logged-in users</option>
-                    <option value="Private">Private — only visible to you</option>
+                    <option value="Public">Public - visible to everyone</option>
+                    <option value="Community">Community - visible to logged-in users</option>
+                    <option value="Private">Private - only visible to you</option>
                   </select>
                 </div>
 
