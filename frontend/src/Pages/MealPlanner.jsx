@@ -24,9 +24,25 @@ function getCurrentWeekDates() {
   });
 }
 
+function getMonday(date = new Date()) {
+  const monday = new Date(date);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return monday;
+}
+
+function formatDateForApi(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function formatDateForInput(date) {
+  return formatDateForApi(date);
+}
+
 export default function MealPlanner() {
   const { activeItems } = useInventory();
   const [mealPlans, setMealPlans] = useState([]);
+  const [weekStart, setWeekStart] = useState(() => getMonday());
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [currentEditingId, setCurrentEditingId] = useState(null);
@@ -49,9 +65,9 @@ export default function MealPlanner() {
 
   const weekDates = useMemo(() => getCurrentWeekDates(), []);
 
-  // FIX: guards the initial fetchMealPlans() GET from overwriting
-  // state with stale data if a save/delete already completed first.
-  const hasMutatedRef = useRef(false);
+  // Invalidates an older fetch when a save/delete finishes first, without
+  // preventing later week changes from loading their own meal plans.
+  const mealPlanRequestIdRef = useRef(0);
 
   useEffect(() => {
     if (!toastOpen) return;
@@ -70,16 +86,14 @@ export default function MealPlanner() {
 
   useEffect(() => {
     fetchMealPlans();
-  }, []);
+  }, [weekStart]);
 
   async function fetchMealPlans() {
+    const requestId = ++mealPlanRequestIdRef.current;
     try {
-      const response = await mealPlanService.getMyMealPlans();
+      const response = await mealPlanService.getMyMealPlans(formatDateForApi(weekStart));
 
-      // FIX: if a save or delete has already landed since this GET
-      // was fired, don't clobber that fresher state with this stale
-      // snapshot from before the mutation happened.
-      if (hasMutatedRef.current) return;
+      if (requestId !== mealPlanRequestIdRef.current) return;
 
       setMealPlans(response.data.data.mealPlans || []);
     } catch (error) {
@@ -218,17 +232,17 @@ export default function MealPlanner() {
       mealName: dishName.trim(),
       mealImage: modalImage || suggestions?.[0]?.strMealThumb || '',
       reminderActive,
-      reminderTime: Number(reminderTime)
+      reminderTime: Number(reminderTime),
+      weekStartDate: formatDateForApi(weekStart)
     };
 
     try {
-      const response = await mealPlanService.addMealPlanEntry(payload);
+      const response = currentEditingId
+        ? await mealPlanService.updateMealPlanEntry(currentEditingId, payload)
+        : await mealPlanService.addMealPlanEntry(payload);
       const savedPlan = response.data.data.mealPlan;
 
-      // FIX: mark that a mutation has happened so the initial
-      // fetchMealPlans() GET (if still in flight) won't overwrite
-      // this with stale pre-save data.
-      hasMutatedRef.current = true;
+      mealPlanRequestIdRef.current += 1;
 
       setMealPlans((prev) => {
         if (currentEditingId) {
@@ -257,8 +271,7 @@ export default function MealPlanner() {
     try {
       await mealPlanService.deleteMealPlanEntry(currentEditingId);
 
-      // FIX: same guard as saveMeal() — a delete counts as a mutation too.
-      hasMutatedRef.current = true;
+      mealPlanRequestIdRef.current += 1;
 
       setMealPlans((prev) => prev.filter((meal) => meal._id !== currentEditingId));
       setToastMessage('Meal removed');
@@ -284,17 +297,51 @@ export default function MealPlanner() {
     setSelectedItems((prev) => prev.filter((item) => item._id !== itemId));
   }
 
+  function changeWeek(offset) {
+    setWeekStart((currentWeek) => {
+      const nextWeek = new Date(currentWeek);
+      nextWeek.setDate(nextWeek.getDate() + offset * 7);
+      return nextWeek;
+    });
+  }
+
+  function selectCalendarDate(value) {
+    if (!value) return;
+    // Adding the timezone keeps YYYY-MM-DD from being interpreted as UTC.
+    setWeekStart(getMonday(new Date(`${value}T00:00:00`)));
+  }
+
+  const weekLabel = useMemo(() => {
+    const endOfWeek = new Date(weekStart);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+    const formatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${formatter.format(weekStart)} – ${formatter.format(endOfWeek)}`;
+  }, [weekStart]);
+
   return (
     <AppLayout title="Meal Planner">
       <div className="mb-xl flex flex-col gap-lg">
         <div className="flex flex-col gap-lg lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-sm">
             <div className="flex flex-wrap items-center gap-md">
-              <button className="p-sm hover:bg-surface-container rounded-full transition-colors">
+              <button
+                type="button"
+                onClick={() => changeWeek(-1)}
+                aria-label="View previous week"
+                className="p-sm hover:bg-surface-container rounded-full transition-colors"
+              >
                 <span className="material-symbols-outlined">chevron_left</span>
               </button>
-              <h2 className="font-headline-lg text-headline-lg">Weekly Meal Planner</h2>
-              <button className="p-sm hover:bg-surface-container rounded-full transition-colors">
+              <div>
+                <h2 className="font-headline-lg text-headline-lg">Weekly Meal Planner</h2>
+                <p className="text-xs font-semibold text-on-surface-variant">{weekLabel}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => changeWeek(1)}
+                aria-label="View next week"
+                className="p-sm hover:bg-surface-container rounded-full transition-colors"
+              >
                 <span className="material-symbols-outlined">chevron_right</span>
               </button>
             </div>
@@ -304,6 +351,17 @@ export default function MealPlanner() {
           </div>
 
           <div className="flex flex-col gap-sm w-full max-w-xl">
+            <label className="flex items-center gap-2 text-sm text-on-surface-variant" htmlFor="calendar-date">
+              <span className="material-symbols-outlined" aria-hidden="true">calendar_month</span>
+              Jump to date
+              <input
+                id="calendar-date"
+                type="date"
+                value={formatDateForInput(weekStart)}
+                onChange={(event) => selectCalendarDate(event.target.value)}
+                className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface"
+              />
+            </label>
             <div className="relative w-full max-w-md focus-within:ring-2 focus-within:ring-primary-container rounded-full overflow-hidden border border-outline-variant">
               <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
               <input
@@ -347,30 +405,30 @@ export default function MealPlanner() {
       <section className="overflow-x-auto custom-scrollbar bg-surface-bright kraft-texture rounded-[32px] p-4">
         <div className="flex h-full min-w-max gap-4" id="calendar-grid">
           {DAYS.map((day, dayIndex) => {
-            const date = weekDates[dayIndex];
+            const date = new Date(weekStart);
+            date.setDate(date.getDate() + dayIndex);
+            const dateLabel = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' }).format(date);
             return (
-              <div key={day} className="flex flex-col w-64 bg-white/60 backdrop-blur-sm rounded-lg border border-outline-variant p-2 gap-6 flex-shrink-0">
-                <div className="px-2 py-1 border-b border-outline-variant/30 text-center">
-                  <span className="text-xs font-bold text-primary/70 block uppercase tracking-widest">{day.substring(0, 3)}</span>
-                  <span className="text-xl font-bold text-primary">
-                    {date.getDate()} {MONTH_LABELS[date.getMonth()]}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-6 flex-1">
-                  {MEAL_SLOTS.map((slot) => {
-                    const meal = mealPlans.find((m) => m.day === day && m.mealType === slot);
-                    return (
-                      <MealColumn
-                        key={slot}
-                        day={day}
-                        slot={slot}
-                        meal={meal}
-                        onOpen={() => openModal(day, slot, meal?._id ?? null)}
-                      />
-                    );
-                  })}
-                </div>
+            <div key={day} className="flex flex-col w-64 bg-white/60 backdrop-blur-sm rounded-lg border border-outline-variant p-2 gap-6 flex-shrink-0">
+              <div className="px-2 py-1 border-b border-outline-variant/30 text-center">
+                <span className="text-xs font-bold text-primary/70 block uppercase tracking-widest">{day.substring(0, 3)}</span>
+                <span className="text-xl font-bold text-primary">{dateLabel}</span>
               </div>
+              <div className="flex flex-col gap-6 flex-1">
+                {MEAL_SLOTS.map((slot) => {
+                  const meal = mealPlans.find((m) => m.day === day && m.mealType === slot);
+                  return (
+                    <MealColumn
+                      key={slot}
+                      day={day}
+                      slot={slot}
+                      meal={meal}
+                      onOpen={() => openModal(day, slot, meal?._id ?? null)}
+                    />
+                  );
+                })}
+              </div>
+            </div>
             );
           })}
         </div>
