@@ -189,6 +189,34 @@ test.describe('UC6 - Plan Weekly Meals', () => {
     });
 
 
+    test('User can move the calendar to a different week', async ({
+        page,
+    }) => {
+        await openMealPlanner(page);
+
+        const calendarDate = page.getByLabel('Jump to date');
+
+        await expect(calendarDate).toBeVisible();
+
+        const initialDate = await calendarDate.inputValue();
+
+        await page.getByRole('button', {
+            name: 'View next week',
+        }).click();
+
+        const expectedDate = new Date(`${initialDate}T00:00:00`);
+        expectedDate.setDate(expectedDate.getDate() + 7);
+
+        const expectedValue = [
+            expectedDate.getFullYear(),
+            String(expectedDate.getMonth() + 1).padStart(2, '0'),
+            String(expectedDate.getDate()).padStart(2, '0'),
+        ].join('-');
+
+        await expect(calendarDate).toHaveValue(expectedValue);
+    });
+
+
     /*
     |--------------------------------------------------------------------------
     | 4. Meal slots
