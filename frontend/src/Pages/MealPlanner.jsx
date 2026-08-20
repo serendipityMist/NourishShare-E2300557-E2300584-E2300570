@@ -7,6 +7,22 @@ import { getExpiryStatus, daysUntil } from '../utils/dateUtils.js';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const MEAL_SLOTS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// Returns the Date object for each day (Mon-Sun) of the current week
+function getCurrentWeekDates() {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ... 6 = Saturday
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diffToMonday);
+
+  return DAYS.map((_, idx) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + idx);
+    return d;
+  });
+}
 
 export default function MealPlanner() {
   const { activeItems } = useInventory();
@@ -29,6 +45,9 @@ export default function MealPlanner() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [recipeLoading, setRecipeLoading] = useState(false);
   const [expiringItems, setExpiringItems] = useState([]);
+  const [existingMealImage, setExistingMealImage] = useState('');
+
+  const weekDates = useMemo(() => getCurrentWeekDates(), []);
 
   useEffect(() => {
     if (!toastOpen) return;
@@ -140,23 +159,31 @@ export default function MealPlanner() {
   const mealCount = filteredMeals.length;
   const completion = mealCount ? Math.min(100, Math.round((mealCount / (DAYS.length * MEAL_SLOTS.length)) * 100)) : 0;
 
+  // Picture only shows once a meal has an actual image (existing plan or a chosen recipe)
+  const modalImage = selectedRecipe?.strMealThumb || recipeDetails?.strMealThumb || existingMealImage || '';
+
   function openModal(day, slot, id = null) {
     const existing = mealPlans.find((meal) => meal._id === id);
     setCurrentEditingId(id);
     setMealDay(day);
     setCurrentSlot(slot);
     setInventoryMenuOpen(false);
+    setSelectedRecipe(null);
+    setRecipeDetails(null);
+    setSuggestions([]);
 
     if (existing) {
       setDishName(existing.mealName);
       setSelectedItems(existing.food || []);
       setReminderActive(false);
       setReminderTime('60');
+      setExistingMealImage(existing.mealImage || existing.food?.[0]?.foodImage || '');
     } else {
       setDishName('');
       setSelectedItems([]);
       setReminderActive(false);
       setReminderTime('60');
+      setExistingMealImage('');
     }
 
     setModalOpen(true);
@@ -179,11 +206,7 @@ export default function MealPlanner() {
       day: mealDay,
       mealType: currentSlot,
       mealName: dishName.trim(),
-      mealImage:
-        selectedRecipe?.strMealThumb ||
-        recipeDetails?.strMealThumb ||
-        suggestions?.[0]?.strMealThumb ||
-        '',
+      mealImage: modalImage || suggestions?.[0]?.strMealThumb || '',
       reminderActive,
       reminderTime: Number(reminderTime)
     };
@@ -304,45 +327,52 @@ export default function MealPlanner() {
 
       <section className="overflow-x-auto custom-scrollbar bg-surface-bright kraft-texture rounded-[32px] p-4">
         <div className="flex h-full min-w-max gap-4" id="calendar-grid">
-          {DAYS.map((day, dayIndex) => (
-            <div key={day} className="flex flex-col w-64 bg-white/60 backdrop-blur-sm rounded-lg border border-outline-variant p-2 gap-6 flex-shrink-0">
-              <div className="px-2 py-1 border-b border-outline-variant/30 text-center">
-                <span className="text-xs font-bold text-primary/70 block uppercase tracking-widest">{day.substring(0, 3)}</span>
-                <span className="text-xl font-bold text-primary">{14 + dayIndex} Oct</span>
+          {DAYS.map((day, dayIndex) => {
+            const date = weekDates[dayIndex];
+            return (
+              <div key={day} className="flex flex-col w-64 bg-white/60 backdrop-blur-sm rounded-lg border border-outline-variant p-2 gap-6 flex-shrink-0">
+                <div className="px-2 py-1 border-b border-outline-variant/30 text-center">
+                  <span className="text-xs font-bold text-primary/70 block uppercase tracking-widest">{day.substring(0, 3)}</span>
+                  <span className="text-xl font-bold text-primary">
+                    {date.getDate()} {MONTH_LABELS[date.getMonth()]}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-6 flex-1">
+                  {MEAL_SLOTS.map((slot) => {
+                    const meal = mealPlans.find((m) => m.day === day && m.mealType === slot);
+                    return (
+                      <MealColumn
+                        key={slot}
+                        day={day}
+                        slot={slot}
+                        meal={meal}
+                        onOpen={() => openModal(day, slot, meal?._id ?? null)}
+                      />
+                    );
+                  })}
+                </div>
               </div>
-              <div className="flex flex-col gap-6 flex-1">
-                {MEAL_SLOTS.map((slot) => {
-                  const meal = mealPlans.find((m) => m.day === day && m.mealType === slot);
-                  return (
-                    <MealColumn
-                      key={slot}
-                      day={day}
-                      slot={slot}
-                      meal={meal}
-                      onOpen={() => openModal(day, slot, meal?._id ?? null)}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
       <div className={`fixed inset-0 z-50 flex items-center justify-center modal-backdrop transition-opacity duration-300 ${modalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
         <div className={`bg-white rounded-xl shadow-2xl max-w-4xl w-full flex overflow-hidden border border-outline-variant transform transition-transform duration-300 ${modalOpen ? 'scale-100' : 'scale-95'}`}>
-          <div className="w-1/3 relative bg-surface-container overflow-hidden hidden md:block">
-            <img
-              className="w-full h-full object-cover"
-              src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=1200&q=80"
-              alt="Meal planning"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent"></div>
-            <div className="absolute bottom-6 left-6 text-white pr-6">
-              <p className="text-xs uppercase tracking-widest opacity-80 mb-1">Pantry First</p>
-              <h3 className="text-2xl font-bold leading-tight">Plan using items ready to cook</h3>
+          {modalImage && (
+            <div className="w-1/3 relative bg-surface-container overflow-hidden hidden md:block">
+              <img
+                className="w-full h-full object-cover"
+                src={modalImage}
+                alt={dishName || 'Meal'}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent"></div>
+              <div className="absolute bottom-6 left-6 text-white pr-6">
+                <p className="text-xs uppercase tracking-widest opacity-80 mb-1">Pantry First</p>
+                <h3 className="text-2xl font-bold leading-tight">Plan using items ready to cook</h3>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex-1 p-8 flex flex-col gap-6 bg-surface-bright kraft-texture overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-start">
