@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'https://nourishshare-e2300557-e2300584-e2300570.onrender.com/api/v1';
+
 const api = axios.create({
-  baseURL:'http://localhost:8500/api/v1',
+  baseURL: API_BASE_URL,
   withCredentials: true,
 });
 
@@ -98,7 +102,7 @@ api.interceptors.response.use(
 
       try {
         const { data } = await axios.post(
-          'http://localhost:8500/api/v1/users/refreshToken',
+          `${API_BASE_URL}/users/refreshToken`,
           parsedUser.refreshToken
             ? { refreshToken: parsedUser.refreshToken }
             : {},
