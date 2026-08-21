@@ -4,19 +4,22 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
-// =========================
-// CORS Configuration
-// =========================
+// ======================================================
+// CORS CONFIGURATION
+// ======================================================
 
-const allowedOrigins = process.env.CORS_ORIGIN
+const allowedOrigins = (process.env.CORS_ORIGIN || "")
     .split(",")
-    .map((origin) => origin.trim());
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+console.log("Allowed CORS origins:", allowedOrigins);
 
 app.use(
     cors({
         origin: (origin, callback) => {
-            // Allow requests such as Postman/server-to-server
-            // that do not contain an Origin header
+            // Allow requests that do not contain an Origin header
+            // Example: Postman or server-to-server requests
             if (!origin) {
                 return callback(null, true);
             }
@@ -25,15 +28,20 @@ app.use(
                 return callback(null, true);
             }
 
-            return callback(new Error("Not allowed by CORS"));
+            console.log("Blocked CORS origin:", origin);
+
+            return callback(
+                new Error(`CORS blocked origin: ${origin}`)
+            );
         },
+
         credentials: true,
     })
 );
 
-// =========================
-// Middleware
-// =========================
+// ======================================================
+// BODY PARSING MIDDLEWARE
+// ======================================================
 
 app.use(
     express.json({
@@ -48,12 +56,17 @@ app.use(
     })
 );
 
+// ======================================================
+// STATIC FILES & COOKIES
+// ======================================================
+
 app.use(express.static("public"));
+
 app.use(cookieParser());
 
-// =========================
-// Health Check
-// =========================
+// ======================================================
+// HEALTH CHECK
+// ======================================================
 
 app.get("/", (req, res) => {
     res.status(200).json({
@@ -62,9 +75,9 @@ app.get("/", (req, res) => {
     });
 });
 
-// =========================
-// Routes
-// =========================
+// ======================================================
+// IMPORT ROUTES
+// ======================================================
 
 import userRouter from "./routes/user.routes.js";
 import categoryRouter from "./routes/category.routes.js";
@@ -73,31 +86,47 @@ import donationRouter from "./routes/donation.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
 import mealPlanRouter from "./routes/mealPlan.routes.js";
 
+// ======================================================
+// API ROUTES
+// ======================================================
+
 app.use("/api/v1/users", userRouter);
+
 app.use("/api/v1/category", categoryRouter);
+
 app.use("/api/v1/food", foodRouter);
+
 app.use("/api/v1/donation", donationRouter);
+
 app.use("/api/v1/notifications", notificationRouter);
+
 app.use("/api/v1/meal-plans", mealPlanRouter);
 
-// =========================
-// Error Handler
-// =========================
+// ======================================================
+// ERROR HANDLER
+// ======================================================
 
 app.use((err, req, res, next) => {
+    console.error("====================================");
+    console.error("BACKEND ERROR");
+    console.error("====================================");
+
+    console.error("Message:", err.message);
+    console.error("Stack:", err.stack);
+
+    console.error("====================================");
+
     const statusCode = err.statusCode || 500;
 
-    const responseBody = {
+    res.status(statusCode).json({
         success: false,
         message: err.message || "Internal Server Error",
         errors: err.errors || [],
-    };
-
-    if (process.env.NODE_ENV !== "production") {
-        responseBody.stack = err.stack;
-    }
-
-    res.status(statusCode).json(responseBody);
+    });
 });
+
+// ======================================================
+// EXPORT APP
+// ======================================================
 
 export { app };
