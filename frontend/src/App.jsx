@@ -1,31 +1,32 @@
 import { Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './routes/ProtectedRoute.jsx';
 
-import Home from './pages/Home.jsx';
-import About from './pages/About.jsx';
-import Features from './pages/Features.jsx';
-import HowItWorks from './pages/HowItWorks.jsx';
-import Contact from './pages/Contact.jsx';
-import NotFound from './pages/NotFound.jsx';
-import Register from './pages/auth/Register.jsx';
-import Login from './pages/auth/Login.jsx';
-import VerifyIdentity from './pages/auth/VerifyIdentity.jsx';
+import Home from './Pages/Home.jsx';
+import About from './Pages/About.jsx';
+import Features from './Pages/Features.jsx';
+import HowItWorks from './Pages/HowItWorks.jsx';
+import Contact from './Pages/Contact.jsx';
+import NotFound from './Pages/NotFound.jsx';
+
+import Register from './Pages/auth/Register.jsx';
+import Login from './Pages/auth/Login.jsx';
+import VerifyIdentity from './Pages/auth/VerifyIdentity.jsx';
 import VerifyRegistrationOtp from './Pages/auth/VerifyRegistrationOtp.jsx';
-import ForgotPassword from './pages/auth/ForgotPassword.jsx';
-import VerifyResetOtp from './pages/auth/VerifyResetOtp.jsx';
-import ResetPassword from './pages/auth/ResetPassword.jsx';
+import ForgotPassword from './Pages/auth/ForgotPassword.jsx';
+import VerifyResetOtp from './Pages/auth/VerifyResetOtp.jsx';
+import ResetPassword from './Pages/auth/ResetPassword.jsx';
 
-import Welcome from './pages/Welcome.jsx';
-import Dashboard from './pages/Dashboard.jsx';
-import Notifications from './pages/Notifications.jsx';
+import Welcome from './Pages/Welcome.jsx';
+import Dashboard from './Pages/Dashboard.jsx';
+import Notifications from './Pages/Notifications.jsx';
 import MealPlanner from './Pages/MealPlanner.jsx';
-import Settings from './pages/settings/Settings.jsx';
+import Settings from './Pages/settings/Settings.jsx';
 
-import InventoryList from './pages/inventory/InventoryList.jsx';
-import ItemDetails from './pages/inventory/ItemDetails.jsx';
+import InventoryList from './Pages/inventory/InventoryList.jsx';
+import ItemDetails from './Pages/inventory/ItemDetails.jsx';
 
-import BrowseDonations from './pages/donations/BrowseDonations.jsx';
-import DonationDetails from './pages/donations/DonationDetails.jsx';
+import BrowseDonations from './Pages/donations/BrowseDonations.jsx';
+import DonationDetails from './Pages/donations/DonationDetails.jsx';
 import FoodAnalytics from './Pages/FoodAnalytics.jsx';
 
 export default function App() {
@@ -38,11 +39,14 @@ export default function App() {
       <Route path="/how-it-works" element={<HowItWorks />} />
       <Route path="/contact" element={<Contact />} />
 
-      {/* Public / auth routes (UC1) */}
+      {/* Public / auth routes */}
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
       <Route path="/verify-identity" element={<VerifyIdentity />} />
-      <Route path="/verify-registration-otp" element={<VerifyRegistrationOtp />} />
+      <Route
+        path="/verify-registration-otp"
+        element={<VerifyRegistrationOtp />}
+      />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/verify-reset-otp" element={<VerifyResetOtp />} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -56,6 +60,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/dashboard"
         element={
@@ -64,6 +69,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/inventory"
         element={
@@ -72,6 +78,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/inventory/:id"
         element={
@@ -80,6 +87,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/donations"
         element={
@@ -88,6 +96,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/donations/:id"
         element={
@@ -96,6 +105,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/analytics"
         element={
@@ -104,6 +114,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/meal-planner"
         element={
@@ -112,6 +123,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/notifications"
         element={
@@ -120,6 +132,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/settings"
         element={
