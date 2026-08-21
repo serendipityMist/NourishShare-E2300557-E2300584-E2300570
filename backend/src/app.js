@@ -13,6 +13,22 @@ const allowedOrigins = (process.env.CORS_ORIGIN || "")
     .map((origin) => origin.trim())
     .filter(Boolean);
 
+const isAllowedOrigin = (origin) => {
+    if (!origin) return true;
+
+    if (allowedOrigins.includes(origin)) return true;
+
+    const normalized = origin.toLowerCase();
+
+    return (
+        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized) ||
+        normalized.endsWith(".vercel.app") ||
+        normalized.endsWith(".onrender.com") ||
+        normalized.endsWith(".netlify.app") ||
+        normalized.endsWith(".pages.dev")
+    );
+};
+
 console.log("Allowed CORS origins:", allowedOrigins);
 
 app.use(
@@ -20,11 +36,7 @@ app.use(
         origin: (origin, callback) => {
             // Allow requests that do not contain an Origin header
             // Example: Postman or server-to-server requests
-            if (!origin) {
-                return callback(null, true);
-            }
-
-            if (allowedOrigins.includes(origin)) {
+            if (isAllowedOrigin(origin)) {
                 return callback(null, true);
             }
 
@@ -34,7 +46,8 @@ app.use(
                 new Error(`CORS blocked origin: ${origin}`)
             );
         },
-
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
         credentials: true,
     })
 );
