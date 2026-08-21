@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button.jsx';
 import OtpInput from '../../components/auth/OtpInput.jsx';
 import ToastStack from '../../components/ui/ToastStack.jsx';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth.js';
 
 export default function VerifyResetOtp() {
   const navigate = useNavigate();
