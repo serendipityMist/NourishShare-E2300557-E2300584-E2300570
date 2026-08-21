@@ -1,57 +1,100 @@
 import { Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './routes/ProtectedRoute.jsx';
 
-import Home from './Pages/Home.jsx';
-import About from './Pages/About.jsx';
-import Features from './Pages/Features.jsx';
-import HowItWorks from './Pages/HowItWorks.jsx';
-import Contact from './Pages/Contact.jsx';
-import NotFound from './Pages/NotFound.jsx';
+// =========================
+// Public Pages - src/pages
+// =========================
+import Home from './pages/Home.jsx';
+import About from './pages/About.jsx';
+import Features from './pages/Features.jsx';
+import HowItWorks from './pages/HowItWorks.jsx';
+import Contact from './pages/Contact.jsx';
+import NotFound from './pages/NotFound.jsx';
 
-import Register from './Pages/auth/Register.jsx';
-import Login from './Pages/auth/Login.jsx';
-import VerifyIdentity from './Pages/auth/VerifyIdentity.jsx';
+// =========================
+// Authentication - src/pages/auth
+// =========================
+import Register from './pages/auth/Register.jsx';
+import Login from './pages/auth/Login.jsx';
+import VerifyIdentity from './pages/auth/VerifyIdentity.jsx';
+import ForgotPassword from './pages/auth/ForgotPassword.jsx';
+import ResetPassword from './pages/auth/ResetPassword.jsx';
+
+// =========================
+// OTP Verification - src/Pages/auth
+// =========================
 import VerifyRegistrationOtp from './Pages/auth/VerifyRegistrationOtp.jsx';
-import ForgotPassword from './Pages/auth/ForgotPassword.jsx';
-import VerifyResetOtp from './Pages/auth/VerifyResetOtp.jsx';
-import ResetPassword from './Pages/auth/ResetPassword.jsx';
+import VerifyResetOtp from './Pages/auth/verifyResetOtp.jsx';
 
-import Welcome from './Pages/Welcome.jsx';
-import Dashboard from './Pages/Dashboard.jsx';
-import Notifications from './Pages/Notifications.jsx';
+// =========================
+// Main Application Pages - src/pages
+// =========================
+import Welcome from './pages/Welcome.jsx';
+import Dashboard from './pages/Dashboard.jsx';
+import Notifications from './pages/Notifications.jsx';
+
+// =========================
+// Meal Planner & Analytics - src/Pages
+// =========================
 import MealPlanner from './Pages/MealPlanner.jsx';
-import Settings from './Pages/settings/Settings.jsx';
-
-import InventoryList from './Pages/inventory/InventoryList.jsx';
-import ItemDetails from './Pages/inventory/ItemDetails.jsx';
-
-import BrowseDonations from './Pages/donations/BrowseDonations.jsx';
-import DonationDetails from './Pages/donations/DonationDetails.jsx';
 import FoodAnalytics from './Pages/FoodAnalytics.jsx';
+
+// =========================
+// Settings - src/pages/settings
+// =========================
+import Settings from './pages/settings/Settings.jsx';
+
+// =========================
+// Inventory - src/pages/inventory
+// =========================
+import InventoryList from './pages/inventory/InventoryList.jsx';
+import ItemDetails from './pages/inventory/ItemDetails.jsx';
+
+// =========================
+// Donations - src/pages/donations
+// =========================
+import BrowseDonations from './pages/donations/BrowseDonations.jsx';
+import DonationDetails from './pages/donations/DonationDetails.jsx';
 
 export default function App() {
   return (
     <Routes>
-      {/* Public landing page */}
+
+      {/* =========================
+          Public Landing Pages
+          ========================= */}
       <Route path="/" element={<Home />} />
       <Route path="/about" element={<About />} />
       <Route path="/features" element={<Features />} />
       <Route path="/how-it-works" element={<HowItWorks />} />
       <Route path="/contact" element={<Contact />} />
 
-      {/* Public / auth routes */}
+      {/* =========================
+          Authentication Routes
+          ========================= */}
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
       <Route path="/verify-identity" element={<VerifyIdentity />} />
+
       <Route
         path="/verify-registration-otp"
         element={<VerifyRegistrationOtp />}
       />
+
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/verify-reset-otp" element={<VerifyResetOtp />} />
+
+      <Route
+        path="/verify-reset-otp"
+        element={<VerifyResetOtp />}
+      />
+
       <Route path="/reset-password" element={<ResetPassword />} />
 
-      {/* Authenticated app routes */}
+      {/* =========================
+          Protected Routes
+          ========================= */}
+
+      {/* Welcome */}
       <Route
         path="/welcome"
         element={
@@ -61,6 +104,7 @@ export default function App() {
         }
       />
 
+      {/* Dashboard */}
       <Route
         path="/dashboard"
         element={
@@ -70,6 +114,7 @@ export default function App() {
         }
       />
 
+      {/* Inventory */}
       <Route
         path="/inventory"
         element={
@@ -88,6 +133,7 @@ export default function App() {
         }
       />
 
+      {/* Donations */}
       <Route
         path="/donations"
         element={
@@ -106,6 +152,7 @@ export default function App() {
         }
       />
 
+      {/* Food Analytics */}
       <Route
         path="/analytics"
         element={
@@ -115,6 +162,7 @@ export default function App() {
         }
       />
 
+      {/* Meal Planner */}
       <Route
         path="/meal-planner"
         element={
@@ -124,6 +172,7 @@ export default function App() {
         }
       />
 
+      {/* Notifications */}
       <Route
         path="/notifications"
         element={
@@ -133,6 +182,7 @@ export default function App() {
         }
       />
 
+      {/* Settings */}
       <Route
         path="/settings"
         element={
@@ -142,7 +192,11 @@ export default function App() {
         }
       />
 
+      {/* =========================
+          404 Page
+          ========================= */}
       <Route path="*" element={<NotFound />} />
+
     </Routes>
   );
 }
